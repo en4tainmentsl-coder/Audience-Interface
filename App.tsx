@@ -10,6 +10,8 @@ import { ArtistDetail } from './pages/ArtistDetail';
 import { RequestQuote } from './pages/RequestQuote';
 import { Contact } from './pages/Contact';
 import { Admin } from './pages/Admin';
+import { VenuePortal } from './pages/VenuePortal';
+import { VenueDashboard } from './pages/VenueDashboard';
 import { MusicAssistant } from './components/MusicAssistant';
 
 const ScrollToTop = () => {
@@ -37,6 +39,8 @@ const App: React.FC = () => {
             <Route path="/request-quote" element={<RequestQuote />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/venue-portal" element={<VenuePortal />} />
+            <Route path="/venue-dashboard" element={<VenueDashboard />} />
           </Routes>
         </main>
         <Footer />

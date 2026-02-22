@@ -2,8 +2,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ArtistCard } from '../components/ArtistCard';
-import { ARTISTS } from '../constants';
+import { ARTISTS as STATIC_ARTISTS } from '../constants';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { supabase } from '../services/supabase';
+import { Artist } from '../types';
 
 export const Artists: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -11,6 +13,29 @@ export const Artists: React.FC = () => {
   
   const [searchTerm, setSearchTerm] = useState(urlQuery);
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
+  const [artists, setArtists] = useState<Artist[]>(STATIC_ARTISTS);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchArtists();
+  }, []);
+
+  const fetchArtists = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('artists')
+        .select('*');
+      
+      if (data && data.length > 0) {
+        setArtists(data);
+      }
+    } catch (error) {
+      console.error('Error fetching artists:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const categories = ['All Categories', 'Electronic / DJ', 'Rock / Alternative', 'Jazz / Blues', 'Acoustic / Indie'];
 
@@ -30,14 +55,14 @@ export const Artists: React.FC = () => {
   };
 
   const filteredArtists = useMemo(() => {
-    return ARTISTS.filter(artist => {
+    return artists.filter(artist => {
       const matchesSearch = artist.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                            artist.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            artist.category.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = selectedCategory === 'All Categories' || artist.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
-  }, [searchTerm, selectedCategory]);
+  }, [searchTerm, selectedCategory, artists]);
 
   const clearAllFilters = () => {
     setSearchTerm('');

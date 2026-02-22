@@ -1,13 +1,34 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { ArtistCard } from '../components/ArtistCard';
-import { ARTISTS, RECENT_PERFORMANCES } from '../constants';
+import { ARTISTS as STATIC_ARTISTS, RECENT_PERFORMANCES } from '../constants';
 import { Play, Sparkles, Star, Calendar } from 'lucide-react';
+import { supabase } from '../services/supabase';
+import { Artist } from '../types';
 
 export const Home: React.FC = () => {
-  const featuredArtists = ARTISTS.slice(0, 3);
+  const [featuredArtists, setFeaturedArtists] = useState<Artist[]>(STATIC_ARTISTS.slice(0, 3));
+
+  useEffect(() => {
+    fetchFeaturedArtists();
+  }, []);
+
+  const fetchFeaturedArtists = async () => {
+    try {
+      const { data } = await supabase
+        .from('artists')
+        .select('*')
+        .limit(3);
+      
+      if (data && data.length > 0) {
+        setFeaturedArtists(data);
+      }
+    } catch (error) {
+      console.error('Error fetching featured artists:', error);
+    }
+  };
 
   return (
     <div className="min-h-screen">
