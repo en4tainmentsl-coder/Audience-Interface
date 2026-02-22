@@ -27,7 +27,7 @@ export const ARTISTS: Artist[] = [
     id: '2',
     name: 'The Midnight Strum',
     category: 'Acoustic / Indie',
-    imageUrl: 'https://ik.imagekit.io/enfourreap/Picture3_edit.png?updatedAt=1770550999051',
+    imageUrl: 'https://ik.imagekit.io/enfourreap/Mocks/austin-loveing-0cAbf4Q3OjA-unsplash.jpg',
     rating: 4.5,
     description: 'Soulful acoustic melodies perfect for intimate settings.',
     bio: 'Fronted by lead singer Sarah Jenkins, The Midnight Strum specializes in acoustic covers and original indie folk tracks. They bring a warmth to every room, combining delicate guitar work with powerful, emotive vocals. Perfect for garden weddings, coffee shop sessions, and private lounges.',
@@ -82,7 +82,7 @@ export const RECENT_PERFORMANCES: Performance[] = [
     artistName: 'Rhythm Core',
     date: '2023-11-20',
     venue: 'The Sound Garden',
-    imageUrl: 'https://6958a96c0cfac13004b9e0ed.imgix.net/Picture4.png'
+    imageUrl: 'https://ik.imagekit.io/enfourreap/Mocks/sam-moghadam-TmbMLAvXrZQ-unsplash.jpg'
   },
   {
     id: 'p3',

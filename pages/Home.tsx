@@ -141,7 +141,7 @@ export const Home: React.FC = () => {
           
           <div className="mt-20 text-center">
              <Link to="/artists">
-              <Button variant="secondary" size="lg">Rate A Performance</Button>
+              <Button variant="secondary" size="lg">Rate a Performance</Button>
              </Link>
           </div>
         </div>
@@ -159,7 +159,7 @@ export const Home: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
             <Link to="/request-quote">
               <Button size="lg" variant="primary" className="px-12 py-5 text-xl animate-pulse-slow">
-                Request Free Quote
+                Request a Free Quote
               </Button>
             </Link>
           </div>
