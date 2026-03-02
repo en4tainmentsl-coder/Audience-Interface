@@ -1,9 +1,33 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Building2, FileText, MapPin, Phone, User, Lock, CheckCircle, AlertCircle, Upload, Map as MapIcon } from 'lucide-react';
+import { Building2, FileText, MapPin, Phone, User, Lock, CheckCircle, AlertCircle, Upload, Map as MapIcon, Info } from 'lucide-react';
 import { Button } from '../components/Button';
 import { supabase } from '../services/supabase';
+
+const InfoTooltip: React.FC<{ text: string }> = ({ text }) => {
+  const [show, setShow] = useState(false);
+
+  return (
+    <div className="relative inline-block ml-1 align-middle">
+      <button
+        type="button"
+        onClick={() => setShow(!show)}
+        onMouseEnter={() => setShow(true)}
+        onMouseLeave={() => setShow(false)}
+        className="text-gray-500 hover:text-brand-purple transition-colors"
+      >
+        <Info size={14} />
+      </button>
+      {show && (
+        <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-brand-surface border border-white/10 rounded-lg shadow-2xl text-xs text-gray-300 leading-relaxed animate-fade-in">
+          {text}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-brand-surface" />
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const VenuePortal: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -246,7 +270,10 @@ export const VenuePortal: React.FC = () => {
                         <Building2 className="w-5 h-5" /> Basic Information
                       </h3>
                       <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-1">Name of Venue</label>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">
+                          Name of Venue
+                          <InfoTooltip text="Enter the trading name of your venue — this is the name your clients and guests know you by. It will be displayed publicly on your venue profile." />
+                        </label>
                         <input
                           type="text"
                           required
@@ -256,7 +283,10 @@ export const VenuePortal: React.FC = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-1">Registered Name (as per BR)</label>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">
+                          Registered Name (as per BR)
+                          <InfoTooltip text="Enter the full legal name of your business exactly as it appears on your Business Registration certificate. This must match your official documents to complete verification." />
+                        </label>
                         <input
                           type="text"
                           required
@@ -266,7 +296,10 @@ export const VenuePortal: React.FC = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-1">BR Number</label>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">
+                          BR Number
+                          <InfoTooltip text="Enter your unique Business Registration number as issued by the relevant government authority. This is used to verify the legitimacy of your venue on our platform." />
+                        </label>
                         <input
                           type="text"
                           required
@@ -276,7 +309,10 @@ export const VenuePortal: React.FC = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-1">BR Photo Upload</label>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">
+                          BR Copy Upload (PDF only)
+                          <InfoTooltip text="Upload a clear, readable copy of your Business Registration certificate in PDF format. This document is required for venue verification and will be reviewed by our team." />
+                        </label>
                         <div className="relative">
                           <input
                             type="file"
@@ -292,7 +328,7 @@ export const VenuePortal: React.FC = () => {
                           >
                             <Upload className="w-5 h-5 text-gray-400" />
                             <span className="text-gray-400">
-                              {signupData.brPhoto ? signupData.brPhoto.name : 'Upload BR Certificate'}
+                              {signupData.brPhoto ? signupData.brPhoto.name : 'Upload PDF Copy of BR Certificate'}
                             </span>
                           </label>
                         </div>
@@ -304,7 +340,10 @@ export const VenuePortal: React.FC = () => {
                         <MapPin className="w-5 h-5" /> Location & Contact
                       </h3>
                       <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-1">Registered Address</label>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">
+                          Registered Address (as per BR)
+                          <InfoTooltip text="Enter the official address of your business as stated on your Business Registration certificate. This may differ from your venue's physical location." />
+                        </label>
                         <textarea
                           required
                           className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 px-4 focus:outline-none focus:border-brand-purple h-20"
@@ -313,7 +352,10 @@ export const VenuePortal: React.FC = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-1">Location Address</label>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">
+                          Location Address
+                          <InfoTooltip text="Enter the actual physical address where your venue is located. This is the address performers will use to find your venue." />
+                        </label>
                         <textarea
                           required
                           className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 px-4 focus:outline-none focus:border-brand-purple h-20"
@@ -323,7 +365,10 @@ export const VenuePortal: React.FC = () => {
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-400 mb-1">Reg. Phone</label>
+                          <label className="block text-sm font-medium text-gray-400 mb-1">
+                            Reg. Phone
+                            <InfoTooltip text="Enter the landline or official phone number registered under your business. This is used for formal communication and verification purposes." />
+                          </label>
                           <input
                             type="tel"
                             required
@@ -333,7 +378,10 @@ export const VenuePortal: React.FC = () => {
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-400 mb-1">Mobile (Auth)</label>
+                          <label className="block text-sm font-medium text-gray-400 mb-1">
+                            Mobile (Auth)
+                            <InfoTooltip text="Enter the mobile number of the authorized person managing this venue account. This number will be used for account authentication, important notifications, and OTP verification." />
+                          </label>
                           <input
                             type="tel"
                             required
@@ -344,7 +392,7 @@ export const VenuePortal: React.FC = () => {
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-1">Google Maps Pin (Mock)</label>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">Google Maps Pin</label>
                         <Button
                           type="button"
                           variant="outline"
@@ -403,7 +451,7 @@ export const VenuePortal: React.FC = () => {
 
                     <div className="md:col-span-2 pt-4">
                       <Button type="submit" className="w-full" disabled={loading}>
-                        {loading ? 'Submitting...' : 'Register Venue'}
+                        {loading ? 'Submitting...' : 'Submit Registration'}
                       </Button>
                     </div>
                   </form>
