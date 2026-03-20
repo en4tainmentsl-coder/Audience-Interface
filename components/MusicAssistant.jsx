@@ -4,14 +4,14 @@ import { MessageSquare, Send, X, Music, Sparkles } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 import { ARTISTS } from '../constants';
 
-export const MusicAssistant: React.FC = () => {
+export const MusicAssistant = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([
+  const [messages, setMessages] = useState([
     { role: 'assistant', content: "Hi! I'm your En4tainment Assistant. What kind of vibe or artist are you looking for today? I can help you find the perfect music for your event!" }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef(null);
 
   useEffect(() => {
     if (scrollRef.current) {

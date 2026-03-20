@@ -6,7 +6,7 @@ import { Button } from '../components/Button';
 import { bookingService } from '../services/bookingService';
 import { CheckCircle, Music, MapPin, Calendar, Clock } from 'lucide-react';
 
-export const RequestQuote: React.FC = () => {
+export const RequestQuote = () => {
   const [searchParams] = useSearchParams();
   const preSelectedArtistId = searchParams.get('artistId');
 
@@ -30,12 +30,12 @@ export const RequestQuote: React.FC = () => {
     }
   }, [preSelectedArtistId]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     

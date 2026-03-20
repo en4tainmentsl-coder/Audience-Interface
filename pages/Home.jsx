@@ -6,10 +6,9 @@ import { ArtistCard } from '../components/ArtistCard';
 import { ARTISTS as STATIC_ARTISTS, RECENT_PERFORMANCES } from '../constants';
 import { Play, Sparkles, Star, Calendar } from 'lucide-react';
 import { supabase } from '../services/supabase';
-import { Artist } from '../types';
 
-export const Home: React.FC = () => {
-  const [featuredArtists, setFeaturedArtists] = useState<Artist[]>(STATIC_ARTISTS.slice(0, 3));
+export const Home = () => {
+  const [featuredArtists, setFeaturedArtists] = useState(STATIC_ARTISTS.slice(0, 3));
 
   useEffect(() => {
     fetchFeaturedArtists();

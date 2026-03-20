@@ -1,4 +1,3 @@
-import { Artist, Performance } from './types';
 
 export const LOGO_URL = "https://ik.imagekit.io/enfourreap/Picture7.png?updatedAt=1770550783742";
 
@@ -8,7 +7,7 @@ export const SOCIAL_LINKS = {
   youtube: "https://www.youtube.com/@En4tainment"
 };
 
-export const ARTISTS: Artist[] = [
+export const ARTISTS = [
   {
     id: '1',
     name: 'Neon Pulse',
@@ -67,7 +66,7 @@ export const ARTISTS: Artist[] = [
   }
 ];
 
-export const RECENT_PERFORMANCES: Performance[] = [
+export const RECENT_PERFORMANCES = [
   {
     id: 'p1',
     artistId: '1',

@@ -5,7 +5,7 @@ import { Building2, FileText, MapPin, Phone, User, Lock, CheckCircle, AlertCircl
 import { Button } from '../components/Button';
 import { supabase } from '../services/supabase';
 
-const InfoTooltip: React.FC<{ text: string }> = ({ text }) => {
+const InfoTooltip = ({ text }) => {
   const [show, setShow] = useState(false);
 
   return (
@@ -29,10 +29,10 @@ const InfoTooltip: React.FC<{ text: string }> = ({ text }) => {
   );
 };
 
-export const VenuePortal: React.FC = () => {
+export const VenuePortal = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
 
@@ -47,7 +47,7 @@ export const VenuePortal: React.FC = () => {
     name: '',
     registeredName: '',
     brNumber: '',
-    brPhoto: null as File | null,
+    brPhoto: null,
     locationLat: 0,
     locationLng: 0,
     registeredAddress: '',
@@ -59,7 +59,7 @@ export const VenuePortal: React.FC = () => {
     confirmPassword: '',
   });
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -77,7 +77,7 @@ export const VenuePortal: React.FC = () => {
         throw new Error('Invalid username or password');
       }
 
-      const venue = data as any;
+      const venue = data;
       if (venue.status === 'pending') {
         throw new Error('Your account is still pending approval by admin.');
       }
@@ -85,14 +85,14 @@ export const VenuePortal: React.FC = () => {
       // Store venue in local storage for mock auth
       localStorage.setItem('venue_user', JSON.stringify(venue));
       navigate('/venue-dashboard');
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSignup = async (e: React.FormEvent) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -134,13 +134,13 @@ export const VenuePortal: React.FC = () => {
         mobile_number: signupData.mobileNumber,
         username: signupData.username,
         status: 'pending',
-      } as any);
+      });
 
       if (insertError) throw insertError;
 
       setSuccess(true);
       setTimeout(() => setIsLogin(true), 3000);
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);

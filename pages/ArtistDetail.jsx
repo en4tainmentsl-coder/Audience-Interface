@@ -2,24 +2,35 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ARTISTS as STATIC_ARTISTS } from '../constants';
-import { Artist, Review } from '../types';
 import { Button } from '../components/Button';
 import { StarRating } from '../components/StarRating';
-import { PlayCircle, Heart, LogIn, MessageSquare } from 'lucide-react';
+import { PlayCircle, Heart, LogIn, MessageSquare, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '../services/supabase';
 
-export const ArtistDetail: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const [artist, setArtist] = useState<Artist | null>(null);
-  const [reviews, setReviews] = useState<Review[]>([]);
+export const ArtistDetail = () => {
+  const { id } = useParams();
+  const [artist, setArtist] = useState(null);
+  const [reviews, setReviews] = useState([]);
   const [isHearted, setIsHearted] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const venueUser = JSON.parse(localStorage.getItem('venue_user') || 'null');
+  const [user, setUser] = useState(null);
+  const [userRole, setUserRole] = useState(null);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('general_user');
-    if (storedUser) setUser(JSON.parse(storedUser));
-    
+    const checkUser = async () => {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        setUser(authUser);
+        const { data: profile } = await supabase
+          .from('Profiles_Users')
+          .select('Role')
+          .eq('UserUUID_PK', authUser.id)
+          .single();
+        setUserRole(profile?.Role);
+      }
+    };
+    checkUser();
     fetchArtistData();
   }, [id]);
 
@@ -40,52 +51,85 @@ export const ArtistDetail: React.FC = () => {
 
     // Fetch Reviews
     const { data: reviewsData } = await supabase
-      .from('reviews')
+      .from('Reviews')
       .select('*')
       .eq('artist_id', id)
       .order('created_at', { ascending: false });
     
     if (reviewsData) setReviews(reviewsData);
 
-    // Check Heart if venue
-    if (venueUser) {
+    // Check Heart if user is logged in
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (authUser) {
       const { data: heartData } = await supabase
-        .from('hearts')
+        .from('Reviews_Heart')
         .select('*')
-        .eq('venue_id', venueUser.id)
-        .eq('artist_id', id)
+        .eq('UserUUID', authUser.id)
+        .eq('TalentUUID', id)
         .single();
       if (heartData) setIsHearted(true);
     }
   };
 
   const handleHeart = async () => {
-    if (!venueUser) return;
-    if (isHearted) {
-      await supabase.from('hearts').delete().eq('venue_id', venueUser.id).eq('artist_id', id);
-      setIsHearted(false);
-    } else {
-      await supabase.from('hearts').insert({ venue_id: venueUser.id, artist_id: id } as any);
-      setIsHearted(true);
-    }
-  };
+    setError(null);
+    setSuccess(null);
 
-  const handleGoogleLogin = () => {
-    const mockUser = { id: 'user_' + Math.random().toString(36).substr(2, 9), name: 'Guest User', email: 'guest@example.com' };
-    localStorage.setItem('general_user', JSON.stringify(mockUser));
-    setUser(mockUser);
-  };
-
-  const handleAddReview = async (rating: number) => {
-    // Check if user is an organiser (venue user)
-    if (!venueUser) {
-      alert('Only organisers (Venue accounts) are permitted to submit star ratings. Please login as a Venue to rate artists.');
+    if (!user) {
+      setError('Please login to favourite this artist.');
       return;
     }
 
-    // Validate rating value (1-5)
+    if (userRole !== 'user') {
+      setError('Only general client accounts are permitted to favourite artists.');
+      return;
+    }
+
+    try {
+      if (isHearted) {
+        const { error: deleteError } = await supabase
+          .from('Reviews_Heart')
+          .delete()
+          .eq('UserUUID', user.id)
+          .eq('TalentUUID', id);
+        
+        if (deleteError) throw deleteError;
+        setIsHearted(false);
+        setSuccess('Removed from favourites.');
+      } else {
+        const { error: insertError } = await supabase
+          .from('Reviews_Heart')
+          .insert({
+            UserUUID: user.id,
+            TalentUUID: id,
+            AppSource: 'en4tainment'
+          });
+        
+        if (insertError) throw insertError;
+        setIsHearted(true);
+        setSuccess('Added to favourites!');
+      }
+    } catch (err) {
+      setError('Failed to update heart rating: ' + err.message);
+    }
+  };
+
+  const handleAddReview = async (rating) => {
+    setError(null);
+    setSuccess(null);
+
+    if (!user) {
+      setError('Please login to leave a rating.');
+      return;
+    }
+
+    if (userRole !== 'organiser') {
+      setError('Only Venue accounts (organisers) are permitted to submit star ratings.');
+      return;
+    }
+
     if (rating < 1 || rating > 5) {
-      alert('Rating must be between 1 and 5 stars.');
+      setError('Rating must be between 1 and 5.');
       return;
     }
 
@@ -93,33 +137,29 @@ export const ArtistDetail: React.FC = () => {
     if (!comment) return;
 
     try {
-      // 1. Insert into reviews table
-      const { error: reviewError } = await supabase.from('reviews').insert({
+      // Insert into Reviews table
+      const { error: reviewError } = await supabase.from('Reviews').insert({
         artist_id: id,
-        user_id: venueUser.id,
-        user_name: venueUser.name,
-        rating: rating, // keeping legacy column for compatibility if needed
+        ReviewerUserUUID: user.id,
         Rating_1_to_5: rating,
-        ReviewerUserUUID: venueUser.id,
         comment: comment
-      } as any);
+      });
 
       if (reviewError) throw reviewError;
 
-      // 2. Insert into Reviews_5_Star table
+      // Insert into Reviews_5_Star table
       const { error: starError } = await supabase.from('Reviews_5_Star').insert({
-        artist_id: id,
-        ReviewerUserUUID: venueUser.id,
+        TalentUUID: id,
+        ReviewerUserUUID: user.id,
         OverallRating: rating
-      } as any);
+      });
 
       if (starError) throw starError;
 
-      alert('Rating submitted successfully! Ratings are final and cannot be edited or deleted.');
+      setSuccess('Rating submitted successfully!');
       fetchArtistData();
-    } catch (err: any) {
-      console.error('Error submitting rating:', err);
-      alert('Failed to submit rating. Please try again.');
+    } catch (err) {
+      setError('Failed to submit rating: ' + err.message);
     }
   };
 
@@ -140,16 +180,14 @@ export const ArtistDetail: React.FC = () => {
             <span className="bg-brand-lime text-brand-dark font-bold px-3 py-1 rounded">
               {artist.category}
             </span>
-            {venueUser && (
-              <button 
-                onClick={handleHeart}
-                className={`p-2 rounded-full backdrop-blur-md transition-all ${
-                  isHearted ? 'bg-brand-pink text-white' : 'bg-white/10 text-white hover:bg-brand-pink/50'
-                }`}
-              >
-                <Heart className={`w-6 h-6 ${isHearted ? 'fill-current' : ''}`} />
-              </button>
-            )}
+            <button 
+              onClick={handleHeart}
+              className={`p-2 rounded-full backdrop-blur-md transition-all ${
+                isHearted ? 'bg-brand-pink text-white' : 'bg-white/10 text-white hover:bg-brand-pink/50'
+              }`}
+            >
+              <Heart className={`w-6 h-6 ${isHearted ? 'fill-current' : ''}`} />
+            </button>
           </div>
           <h1 className="text-5xl md:text-7xl font-bold mb-2">{artist.name}</h1>
           <div className="flex items-center gap-4 mb-6">
@@ -165,6 +203,18 @@ export const ArtistDetail: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 grid grid-cols-1 lg:grid-cols-3 gap-12">
         
         <div className="lg:col-span-2">
+          {error && (
+            <div className="mb-6 flex items-center gap-2 text-red-500 bg-red-500/10 p-4 rounded-xl border border-red-500/20">
+              <AlertCircle className="w-5 h-5" />
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="mb-6 flex items-center gap-2 text-brand-lime bg-brand-lime/10 p-4 rounded-xl border border-brand-lime/20">
+              <CheckCircle className="w-5 h-5" />
+              {success}
+            </div>
+          )}
           <section className="mb-12">
             <h2 className="text-2xl font-bold mb-6 border-l-4 border-brand-pink pl-4">About the Artist</h2>
             <p className="text-gray-300 leading-loose text-lg">
@@ -196,10 +246,10 @@ export const ArtistDetail: React.FC = () => {
                   <div key={review.id} className="bg-brand-surface p-6 rounded-xl border border-white/5">
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h4 className="font-bold">{review.userName}</h4>
-                        <p className="text-xs text-gray-500">{new Date(review.createdAt).toLocaleDateString()}</p>
+                        <h4 className="font-bold">{review.user_name || 'Anonymous'}</h4>
+                        <p className="text-xs text-gray-500">{new Date(review.created_at).toLocaleDateString()}</p>
                       </div>
-                      <StarRating initialRating={review.rating} readonly size={16} />
+                      <StarRating initialRating={review.Rating_1_to_5} readonly size={16} />
                     </div>
                     <p className="text-gray-300">{review.comment}</p>
                   </div>
@@ -212,12 +262,12 @@ export const ArtistDetail: React.FC = () => {
         <div className="lg:col-span-1 space-y-8">
           <div className="bg-brand-surface p-6 rounded-xl border border-white/5">
             <h3 className="text-xl font-bold mb-4">Rate this Artist</h3>
-            {!venueUser ? (
+            {!user ? (
               <div className="text-center py-4">
-                <p className="text-gray-400 text-sm mb-4">Only Venue accounts can rate artists</p>
+                <p className="text-gray-400 text-sm mb-4">Please login to rate and review</p>
                 <Link to="/venue-portal">
                   <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-                    <LogIn className="w-4 h-4" /> Venue Login
+                    <LogIn className="w-4 h-4" /> Go to Login
                   </Button>
                 </Link>
               </div>
@@ -227,7 +277,8 @@ export const ArtistDetail: React.FC = () => {
                 <div className="flex justify-center py-4 bg-brand-dark/50 rounded-lg">
                    <StarRating initialRating={0} size={32} onRate={handleAddReview} />
                 </div>
-                <p className="text-xs text-center text-brand-lime">Logged in as {venueUser.name} (Organiser)</p>
+                <p className="text-xs text-center text-brand-lime">Logged in as {user.email}</p>
+                {userRole && <p className="text-[10px] text-center text-gray-500 uppercase tracking-widest">Role: {userRole}</p>}
               </div>
             )}
           </div>

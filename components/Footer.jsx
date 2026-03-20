@@ -4,7 +4,7 @@ import { Facebook, Twitter, Instagram, Mail, Phone, MapPin, ShieldCheck, Youtube
 import { Link } from 'react-router-dom';
 import { LOGO_URL, SOCIAL_LINKS } from '../constants';
 
-export const Footer: React.FC = () => {
+export const Footer = () => {
   return (
     <footer className="bg-brand-surface border-t border-white/5 pt-16 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

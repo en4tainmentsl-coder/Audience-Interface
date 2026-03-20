@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { bookingService } from '../services/bookingService';
-import { Booking, BookingStatus } from '../types';
 import { ARTISTS } from '../constants';
 import { Shield, Eye, Trash2, BrainCircuit, Filter, RefreshCw, Send } from 'lucide-react';
 
-export const Admin: React.FC = () => {
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [filter, setFilter] = useState<BookingStatus | 'all'>('all');
+export const Admin = () => {
+  const [bookings, setBookings] = useState([]);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [filter, setFilter] = useState('all');
 
   const loadBookings = () => {
     setBookings(bookingService.getAll().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
@@ -17,7 +16,7 @@ export const Admin: React.FC = () => {
     loadBookings();
   }, []);
 
-  const handleStatusChange = (id: string, status: BookingStatus) => {
+  const handleStatusChange = (id, status) => {
     bookingService.updateStatus(id, status);
     loadBookings();
     if (selectedBooking?.id === id) {
@@ -25,7 +24,7 @@ export const Admin: React.FC = () => {
     }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (id) => {
     if (window.confirm("Delete this booking permanently?")) {
       bookingService.delete(id);
       loadBookings();
@@ -33,7 +32,7 @@ export const Admin: React.FC = () => {
     }
   };
 
-  const getArtistName = (id: string) => {
+  const getArtistName = (id) => {
     const artist = ARTISTS.find(a => a.id === id);
     return artist ? artist.name : "Not Specified";
   };
@@ -68,7 +67,7 @@ export const Admin: React.FC = () => {
               <Filter size={16} className="text-gray-500" />
               <select 
                 value={filter} 
-                onChange={(e) => setFilter(e.target.value as any)}
+                onChange={(e) => setFilter(e.target.value)}
                 className="bg-transparent text-sm text-gray-300 outline-none cursor-pointer"
               >
                 <option value="all">All Statuses</option>
@@ -185,7 +184,7 @@ export const Admin: React.FC = () => {
                       <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Status</label>
                       <select 
                         value={selectedBooking.status}
-                        onChange={(e) => handleStatusChange(selectedBooking.id, e.target.value as BookingStatus)}
+                        onChange={(e) => handleStatusChange(selectedBooking.id, e.target.value)}
                         className="w-full bg-brand-dark border border-white/10 rounded-lg p-2 text-xs text-white outline-none"
                       >
                         <option value="pending">Pending</option>

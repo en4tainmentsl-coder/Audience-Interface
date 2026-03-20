@@ -1,17 +1,16 @@
 
-import { Booking, BookingStatus } from '../types';
 import { ARTISTS } from '../constants';
 import { GoogleGenAI } from '@google/genai';
 
 const STORAGE_KEY = 'en4tainment_bookings';
 
 export const bookingService = {
-  getAll: (): Booking[] => {
+  getAll: () => {
     const data = localStorage.getItem(STORAGE_KEY);
     return data ? JSON.parse(data) : [];
   },
 
-  save: async (request: any): Promise<Booking> => {
+  save: async (request) => {
     const bookings = bookingService.getAll();
     
     // Generate AI Insight for routing
@@ -33,7 +32,7 @@ export const bookingService = {
       aiInsight = "AI analysis currently unavailable.";
     }
 
-    const newBooking: Booking = {
+    const newBooking = {
       ...request,
       id: Math.random().toString(36).substr(2, 9),
       createdAt: new Date().toISOString(),
@@ -46,7 +45,7 @@ export const bookingService = {
     return newBooking;
   },
 
-  updateStatus: (id: string, status: BookingStatus) => {
+  updateStatus: (id, status) => {
     const bookings = bookingService.getAll();
     const index = bookings.findIndex(b => b.id === id);
     if (index !== -1) {
@@ -55,7 +54,7 @@ export const bookingService = {
     }
   },
 
-  delete: (id: string) => {
+  delete: (id) => {
     const bookings = bookingService.getAll().filter(b => b.id !== id);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
   }

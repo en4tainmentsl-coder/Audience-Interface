@@ -5,7 +5,7 @@ import { Menu, X, Search } from 'lucide-react';
 import { Button } from './Button';
 import { LOGO_URL } from '../constants';
 
-export const Navbar: React.FC = () => {
+export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const location = useLocation();
@@ -22,14 +22,14 @@ export const Navbar: React.FC = () => {
     { name: 'Contact', path: '/contact' },
   ];
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path) => location.pathname === path;
 
   useEffect(() => {
     const q = searchParams.get('q') || '';
     setNavSearch(q);
   }, [searchParams]);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (e) => {
     const value = e.target.value;
     setNavSearch(value);
     

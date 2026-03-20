@@ -24,7 +24,7 @@ const ScrollToTop = () => {
   return null;
 }
 
-const App: React.FC = () => {
+const App = () => {
   return (
     <Router>
       <ScrollToTop />

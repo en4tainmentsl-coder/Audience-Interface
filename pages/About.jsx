@@ -1,7 +1,7 @@
 import React from 'react';
 import { Music, Star, Users } from 'lucide-react';
 
-export const About: React.FC = () => {
+export const About = () => {
   return (
     <div className="pt-20 min-h-screen bg-brand-dark text-white">
       

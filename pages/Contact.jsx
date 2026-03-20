@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '../components/Button';
 import { Mail, Phone, MapPin } from 'lucide-react';
 
-export const Contact: React.FC = () => {
+export const Contact = () => {
   return (
     <div className="pt-24 pb-20 min-h-screen bg-brand-dark">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

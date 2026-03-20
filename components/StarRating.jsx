@@ -1,14 +1,7 @@
 import React, { useState } from 'react';
 import { Star } from 'lucide-react';
 
-interface StarRatingProps {
-  initialRating?: number;
-  readonly?: boolean;
-  onRate?: (rating: number) => void;
-  size?: number;
-}
-
-export const StarRating: React.FC<StarRatingProps> = ({ 
+export const StarRating = ({ 
   initialRating = 0, 
   readonly = false, 
   onRate,
@@ -17,7 +10,7 @@ export const StarRating: React.FC<StarRatingProps> = ({
   const [hoverRating, setHoverRating] = useState(0);
   const [rating, setRating] = useState(initialRating);
 
-  const handleRate = (value: number) => {
+  const handleRate = (value) => {
     if (!readonly) {
       setRating(value);
       if (onRate) onRate(value);

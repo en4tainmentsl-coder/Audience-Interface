@@ -5,15 +5,14 @@ import { ArtistCard } from '../components/ArtistCard';
 import { ARTISTS as STATIC_ARTISTS } from '../constants';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { supabase } from '../services/supabase';
-import { Artist } from '../types';
 
-export const Artists: React.FC = () => {
+export const Artists = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlQuery = searchParams.get('q') || '';
   
   const [searchTerm, setSearchTerm] = useState(urlQuery);
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
-  const [artists, setArtists] = useState<Artist[]>(STATIC_ARTISTS);
+  const [artists, setArtists] = useState(STATIC_ARTISTS);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,7 +42,7 @@ export const Artists: React.FC = () => {
     setSearchTerm(urlQuery);
   }, [urlQuery]);
 
-  const handleSearchChange = (value: string) => {
+  const handleSearchChange = (value) => {
     setSearchTerm(value);
     const newParams = new URLSearchParams(searchParams);
     if (value) {

@@ -4,12 +4,11 @@ import { motion } from 'framer-motion';
 import { Plus, Calendar, Clock, Users, Utensils, Languages, Star, Heart, LayoutDashboard, LogOut, CheckCircle, Clock as ClockIcon } from 'lucide-react';
 import { Button } from '../components/Button';
 import { supabase } from '../services/supabase';
-import { Venue, RecurringBooking, Artist } from '../types';
 
-export const VenueDashboard: React.FC = () => {
-  const [venue, setVenue] = useState<Venue | null>(null);
-  const [bookings, setBookings] = useState<RecurringBooking[]>([]);
-  const [artists, setArtists] = useState<Artist[]>([]);
+export const VenueDashboard = () => {
+  const [venue, setVenue] = useState(null);
+  const [bookings, setBookings] = useState([]);
+  const [artists, setArtists] = useState([]);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -35,7 +34,7 @@ export const VenueDashboard: React.FC = () => {
     fetchData(parsedVenue.id);
   }, [navigate]);
 
-  const fetchData = async (venueId: string) => {
+  const fetchData = async (venueId) => {
     setLoading(true);
     try {
       // Fetch Bookings
@@ -46,7 +45,7 @@ export const VenueDashboard: React.FC = () => {
         .order('created_at', { ascending: false });
       
       if (bookingsData) {
-        const mappedBookings = (bookingsData as any[]).map(b => ({
+        const mappedBookings = bookingsData.map(b => ({
           id: b.id,
           venueId: b.venue_id,
           areaName: b.area_name,
@@ -76,7 +75,7 @@ export const VenueDashboard: React.FC = () => {
     }
   };
 
-  const handleCreateBooking = async (e: React.FormEvent) => {
+  const handleCreateBooking = async (e) => {
     e.preventDefault();
     if (!venue) return;
 
@@ -91,7 +90,7 @@ export const VenueDashboard: React.FC = () => {
         occasion_type: newBooking.occasionType,
         primary_language: newBooking.primaryLanguage,
         status: 'pending',
-      } as any);
+      });
 
       if (error) throw error;
 
