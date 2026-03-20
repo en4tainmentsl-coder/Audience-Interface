@@ -77,23 +77,49 @@ export const ArtistDetail: React.FC = () => {
   };
 
   const handleAddReview = async (rating: number) => {
-    if (!user) {
-      alert('Please login with Google to leave a review');
+    // Check if user is an organiser (venue user)
+    if (!venueUser) {
+      alert('Only organisers (Venue accounts) are permitted to submit star ratings. Please login as a Venue to rate artists.');
       return;
     }
+
+    // Validate rating value (1-5)
+    if (rating < 1 || rating > 5) {
+      alert('Rating must be between 1 and 5 stars.');
+      return;
+    }
+
     const comment = prompt('Enter your review:');
     if (!comment) return;
 
-    const { error } = await supabase.from('reviews').insert({
-      artist_id: id,
-      user_id: user.id,
-      user_name: user.name,
-      rating,
-      comment
-    } as any);
+    try {
+      // 1. Insert into reviews table
+      const { error: reviewError } = await supabase.from('reviews').insert({
+        artist_id: id,
+        user_id: venueUser.id,
+        user_name: venueUser.name,
+        rating: rating, // keeping legacy column for compatibility if needed
+        Rating_1_to_5: rating,
+        ReviewerUserUUID: venueUser.id,
+        comment: comment
+      } as any);
 
-    if (!error) {
+      if (reviewError) throw reviewError;
+
+      // 2. Insert into Reviews_5_Star table
+      const { error: starError } = await supabase.from('Reviews_5_Star').insert({
+        artist_id: id,
+        ReviewerUserUUID: venueUser.id,
+        OverallRating: rating
+      } as any);
+
+      if (starError) throw starError;
+
+      alert('Rating submitted successfully! Ratings are final and cannot be edited or deleted.');
       fetchArtistData();
+    } catch (err: any) {
+      console.error('Error submitting rating:', err);
+      alert('Failed to submit rating. Please try again.');
     }
   };
 
@@ -186,12 +212,14 @@ export const ArtistDetail: React.FC = () => {
         <div className="lg:col-span-1 space-y-8">
           <div className="bg-brand-surface p-6 rounded-xl border border-white/5">
             <h3 className="text-xl font-bold mb-4">Rate this Artist</h3>
-            {!user ? (
+            {!venueUser ? (
               <div className="text-center py-4">
-                <p className="text-gray-400 text-sm mb-4">Login with Google to rate and review</p>
-                <Button variant="outline" className="w-full flex items-center justify-center gap-2" onClick={handleGoogleLogin}>
-                  <LogIn className="w-4 h-4" /> Login with Google
-                </Button>
+                <p className="text-gray-400 text-sm mb-4">Only Venue accounts can rate artists</p>
+                <Link to="/venue-portal">
+                  <Button variant="outline" className="w-full flex items-center justify-center gap-2">
+                    <LogIn className="w-4 h-4" /> Venue Login
+                  </Button>
+                </Link>
               </div>
             ) : (
               <div className="space-y-4">
@@ -199,7 +227,7 @@ export const ArtistDetail: React.FC = () => {
                 <div className="flex justify-center py-4 bg-brand-dark/50 rounded-lg">
                    <StarRating initialRating={0} size={32} onRate={handleAddReview} />
                 </div>
-                <p className="text-xs text-center text-brand-lime">Logged in as {user.name}</p>
+                <p className="text-xs text-center text-brand-lime">Logged in as {venueUser.name} (Organiser)</p>
               </div>
             )}
           </div>
