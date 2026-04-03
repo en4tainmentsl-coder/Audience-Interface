@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Building2, FileText, MapPin, Phone, User, Lock, CheckCircle, AlertCircle, Upload, Map as MapIcon, Info } from 'lucide-react';
+import { Building2, FileText, MapPin, Phone, User, Lock, CheckCircle, AlertCircle, Upload, Map as MapIcon, Info, Mail } from 'lucide-react';
 import { Button } from '../components/Button';
 import { supabase } from '../services/supabase';
 
