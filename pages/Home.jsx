@@ -17,12 +17,40 @@ export const Home = () => {
   const fetchFeaturedArtists = async () => {
     try {
       const { data } = await supabase
-        .from('artists')
-        .select('*')
+        .from('profiles_talent')
+        .select(`
+          id,
+          stage_name,
+          bio,
+          short_bio,
+          rating,
+          profile_status,
+          is_public,
+          type_of_performer,
+          primary_location,
+          talent_media (cloudinary_secure_url, is_featured, resource_type),
+          talent_genres (genre_id, is_primary, genres (genre_name))
+        `)
+        .eq('is_public', true)
+        .eq('profile_status', 'active')
         .limit(3);
       
       if (data && data.length > 0) {
-        setFeaturedArtists(data);
+        const mappedArtists = data.map(talent => {
+          const primaryGenre = talent.talent_genres?.find(g => g.is_primary)?.genres?.genre_name || 'Artist';
+          const featuredImage = talent.talent_media?.find(m => m.is_featured && m.resource_type === 'image')?.cloudinary_secure_url || talent.profile_photo_url;
+          
+          return {
+            ...talent,
+            name: talent.stage_name,
+            imageUrl: featuredImage,
+            description: talent.short_bio,
+            bio: talent.bio,
+            category: primaryGenre,
+            rating: talent.rating
+          };
+        });
+        setFeaturedArtists(mappedArtists);
       }
     } catch (error) {
       console.error('Error fetching featured artists:', error);

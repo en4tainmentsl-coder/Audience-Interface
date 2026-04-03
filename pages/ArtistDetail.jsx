@@ -23,11 +23,11 @@ export const ArtistDetail = () => {
       if (authUser) {
         setUser(authUser);
         const { data: profile } = await supabase
-          .from('Profiles_Users')
-          .select('Role')
-          .eq('UserUUID_PK', authUser.id)
+          .from('profiles_users')
+          .select('role')
+          .eq('id', authUser.id)
           .single();
-        setUserRole(profile?.Role);
+        setUserRole(profile?.role);
       }
     };
     checkUser();
@@ -35,39 +35,67 @@ export const ArtistDetail = () => {
   }, [id]);
 
   const fetchArtistData = async () => {
-    // Try to fetch from Supabase first
-    const { data: supabaseArtist } = await supabase
-      .from('artists')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (supabaseArtist) {
-      setArtist(supabaseArtist);
-    } else {
-      const found = STATIC_ARTISTS.find(a => a.id === id);
-      setArtist(found || null);
-    }
-
-    // Fetch Reviews
-    const { data: reviewsData } = await supabase
-      .from('Reviews')
-      .select('*')
-      .eq('artist_id', id)
-      .order('created_at', { ascending: false });
-    
-    if (reviewsData) setReviews(reviewsData);
-
-    // Check Heart if user is logged in
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    if (authUser) {
-      const { data: heartData } = await supabase
-        .from('Reviews_Heart')
-        .select('*')
-        .eq('UserUUID', authUser.id)
-        .eq('TalentUUID', id)
+    try {
+      // Fetch from profiles_talent
+      const { data: talentData } = await supabase
+        .from('profiles_talent')
+        .select(`
+          id,
+          stage_name,
+          bio,
+          short_bio,
+          rating,
+          profile_status,
+          is_public,
+          type_of_performer,
+          primary_location,
+          talent_media (cloudinary_secure_url, is_featured, resource_type),
+          talent_genres (genre_id, is_primary, genres (genre_name))
+        `)
+        .eq('id', id)
         .single();
-      if (heartData) setIsHearted(true);
+
+      if (talentData) {
+        const primaryGenre = talentData.talent_genres?.find(g => g.is_primary)?.genres?.genre_name || 'Artist';
+        const featuredImage = talentData.talent_media?.find(m => m.is_featured && m.resource_type === 'image')?.cloudinary_secure_url || talentData.profile_photo_url;
+        
+        setArtist({
+          ...talentData,
+          name: talentData.stage_name,
+          imageUrl: featuredImage,
+          description: talentData.short_bio,
+          bio: talentData.bio,
+          category: primaryGenre,
+          rating: talentData.rating,
+          gallery: talentData.talent_media?.filter(m => m.resource_type === 'image').map(m => m.cloudinary_secure_url) || []
+        });
+      } else {
+        const found = STATIC_ARTISTS.find(a => a.id === id);
+        setArtist(found || null);
+      }
+
+      // Fetch Reviews from reviews_star
+      const { data: reviewsData } = await supabase
+        .from('reviews_star')
+        .select('*')
+        .eq('reviewee_talent_id', id)
+        .order('created_at', { ascending: false });
+      
+      if (reviewsData) setReviews(reviewsData);
+
+      // Check Heart if user is logged in
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        const { data: heartData } = await supabase
+          .from('reviews_heart')
+          .select('*')
+          .eq('ReviewerUserUUID', authUser.id)
+          .eq('talent_id', id)
+          .single();
+        if (heartData) setIsHearted(true);
+      }
+    } catch (err) {
+      console.error('Error fetching artist data:', err);
     }
   };
 
@@ -80,28 +108,28 @@ export const ArtistDetail = () => {
       return;
     }
 
-    if (userRole !== 'user') {
-      setError('Only general client accounts are permitted to favourite artists.');
+    if (userRole !== 'client') {
+      setError('Only client accounts are permitted to favourite artists.');
       return;
     }
 
     try {
       if (isHearted) {
         const { error: deleteError } = await supabase
-          .from('Reviews_Heart')
+          .from('reviews_heart')
           .delete()
-          .eq('UserUUID', user.id)
-          .eq('TalentUUID', id);
+          .eq('ReviewerUserUUID', user.id)
+          .eq('talent_id', id);
         
         if (deleteError) throw deleteError;
         setIsHearted(false);
         setSuccess('Removed from favourites.');
       } else {
         const { error: insertError } = await supabase
-          .from('Reviews_Heart')
+          .from('reviews_heart')
           .insert({
-            UserUUID: user.id,
-            TalentUUID: id,
+            ReviewerUserUUID: user.id,
+            talent_id: id,
             AppSource: 'en4tainment'
           });
         
@@ -123,7 +151,7 @@ export const ArtistDetail = () => {
       return;
     }
 
-    if (userRole !== 'organiser') {
+    if (userRole !== 'venue') {
       setError('Only Venue accounts (organisers) are permitted to submit star ratings.');
       return;
     }
@@ -133,28 +161,45 @@ export const ArtistDetail = () => {
       return;
     }
 
-    const comment = prompt('Enter your review:');
-    if (!comment) return;
-
     try {
-      // Insert into Reviews table
-      const { error: reviewError } = await supabase.from('Reviews').insert({
-        artist_id: id,
+      // Check for completed booking
+      const { data: venueProfile } = await supabase
+        .from('profiles_venues')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!venueProfile) {
+        setError('Venue profile not found.');
+        return;
+      }
+
+      const { data: completedBooking } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('venue_id', venueProfile.id)
+        .eq('talent_id', id)
+        .eq('booking_status', 'completed')
+        .limit(1)
+        .single();
+
+      if (!completedBooking) {
+        setError('You can only review talent after a completed booking.');
+        return;
+      }
+
+      const comment = prompt('Enter your review:');
+      if (!comment) return;
+
+      // Insert into reviews_star table
+      const { error: reviewError } = await supabase.from('reviews_star').insert({
+        reviewee_talent_id: id,
         ReviewerUserUUID: user.id,
         Rating_1_to_5: rating,
-        comment: comment
+        AppSource: 'en4tainment'
       });
 
       if (reviewError) throw reviewError;
-
-      // Insert into Reviews_5_Star table
-      const { error: starError } = await supabase.from('Reviews_5_Star').insert({
-        TalentUUID: id,
-        ReviewerUserUUID: user.id,
-        OverallRating: rating
-      });
-
-      if (starError) throw starError;
 
       setSuccess('Rating submitted successfully!');
       fetchArtistData();

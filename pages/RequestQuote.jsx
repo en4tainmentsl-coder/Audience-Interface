@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { ARTISTS } from '../constants';
 import { Button } from '../components/Button';
-import { bookingService } from '../services/bookingService';
+import { supabase } from '../services/supabase';
 import { CheckCircle, Music, MapPin, Calendar, Clock } from 'lucide-react';
 
 export const RequestQuote = () => {
@@ -40,11 +40,26 @@ export const RequestQuote = () => {
     setLoading(true);
     
     try {
-      await bookingService.save(formData);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { error } = await supabase.from('quote_requests').insert({
+        client_user_id: user?.id || null,
+        reviewee_talent_id: formData.artistId || null,
+        event_type: 'General',
+        event_date: formData.date,
+        start_time: formData.time,
+        duration_hours: 2,
+        location: formData.location,
+        special_requirements: formData.notes,
+        status: 'open'
+      });
+
+      if (error) throw error;
+
       setLoading(false);
       setIsSubmitted(true);
     } catch (error) {
-      console.error(error);
+      console.error('Quote Request Error:', error);
       setLoading(false);
       alert("Something went wrong. Please try again.");
     }

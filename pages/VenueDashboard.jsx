@@ -24,52 +24,75 @@ export const VenueDashboard = () => {
   });
 
   useEffect(() => {
-    const storedVenue = localStorage.getItem('venue_user');
-    if (!storedVenue) {
-      navigate('/venue-portal');
-      return;
-    }
-    const parsedVenue = JSON.parse(storedVenue);
-    setVenue(parsedVenue);
-    fetchData(parsedVenue.id);
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate('/venue-portal');
+        return;
+      }
+
+      // Fetch Venue Profile
+      const { data: venueProfile, error: venueError } = await supabase
+        .from('profiles_venues')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (venueError || !venueProfile) {
+        console.error('Venue profile not found:', venueError);
+        navigate('/venue-portal');
+        return;
+      }
+
+      setVenue(venueProfile);
+      fetchData(venueProfile.id);
+    };
+    checkAuth();
   }, [navigate]);
 
   const fetchData = async (venueId) => {
     setLoading(true);
     try {
-      // Fetch Bookings
-      const { data: bookingsData } = await supabase
-        .from('recurring_bookings')
-        .select('*')
+      // Fetch Bookings from 'bookings' table
+      const { data: bookingsData, error: bookingsError } = await supabase
+        .from('bookings')
+        .select(`
+          *,
+          profiles_talent (stage_name, profile_photo_url)
+        `)
         .eq('venue_id', venueId)
-        .order('created_at', { ascending: false });
+        .order('event_date', { ascending: false });
       
-      if (bookingsData) {
-        const mappedBookings = bookingsData.map(b => ({
-          id: b.id,
-          venueId: b.venue_id,
-          areaName: b.area_name,
-          venueSize: b.venue_size,
-          timeSlot: b.time_slot,
-          performanceDays: b.performance_days,
-          mealsProvided: b.meals_provided,
-          occasionType: b.occasion_type,
-          primaryLanguage: b.primary_language,
-          status: b.status,
-          createdAt: b.created_at
-        }));
-        setBookings(mappedBookings);
-      }
+      if (bookingsError) throw bookingsError;
+      setBookings(bookingsData || []);
 
-      // Fetch Active Artists for reference
+      // Fetch Recommended Artists
       const { data: artistsData } = await supabase
-        .from('artists')
-        .select('*')
+        .from('profiles_talent')
+        .select(`
+          id,
+          stage_name,
+          rating,
+          profile_photo_url,
+          talent_genres (genres (genre_name))
+        `)
+        .eq('is_public', true)
         .limit(5);
       
-      if (artistsData) setArtists(artistsData);
+      if (artistsData) {
+        const mappedArtists = artistsData.map(a => ({
+          id: a.id,
+          name: a.stage_name,
+          imageUrl: a.profile_photo_url,
+          category: a.talent_genres?.[0]?.genres?.genre_name || 'Artist'
+        }));
+        setArtists(mappedArtists);
+      } else {
+        setArtists(STATIC_ARTISTS.slice(0, 5));
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
+      setError('Failed to load dashboard data.');
     } finally {
       setLoading(false);
     }
@@ -80,16 +103,19 @@ export const VenueDashboard = () => {
     if (!venue) return;
 
     try {
-      const { error } = await supabase.from('recurring_bookings').insert({
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Insert into quote_requests as per user instruction for "New Booking" form
+      const { error } = await supabase.from('quote_requests').insert({
+        client_user_id: user.id,
         venue_id: venue.id,
-        area_name: newBooking.areaName,
-        venue_size: newBooking.venueSize,
-        time_slot: newBooking.timeSlot,
-        performance_days: newBooking.performanceDays,
-        meals_provided: newBooking.mealsProvided,
-        occasion_type: newBooking.occasionType,
-        primary_language: newBooking.primaryLanguage,
-        status: 'pending',
+        event_type: newBooking.occasionType,
+        event_date: new Date().toISOString().split('T')[0], // Placeholder date
+        start_time: newBooking.timeSlot,
+        duration_hours: 2,
+        location: venue.name_of_location,
+        special_requirements: `Area: ${newBooking.areaName}, Size: ${newBooking.venueSize}, Days: ${newBooking.performanceDays}, Meals: ${newBooking.mealsProvided ? 'Yes' : 'No'}, Language: ${newBooking.primaryLanguage}`,
+        status: 'open'
       });
 
       if (error) throw error;
@@ -106,12 +132,13 @@ export const VenueDashboard = () => {
         primaryLanguage: '',
       });
     } catch (error) {
-      console.error('Error creating booking:', error);
+      console.error('Error creating booking request:', error);
+      setError('Failed to submit booking request.');
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('venue_user');
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     navigate('/venue-portal');
   };
 
@@ -166,27 +193,31 @@ export const VenueDashboard = () => {
                       key={booking.id}
                       className="bg-brand-dark/50 border border-white/5 rounded-xl p-4 flex flex-col md:flex-row justify-between gap-4"
                     >
-                      <div className="space-y-1">
-                        <h3 className="font-bold text-lg">{booking.areaName}</h3>
-                        <div className="flex flex-wrap gap-4 text-sm text-gray-400">
-                          <span className="flex items-center gap-1">
-                            <Users className="w-4 h-4" /> {booking.venueSize} Pax
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" /> {booking.timeSlot}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" /> {booking.performanceDays}
-                          </span>
+                      <div className="flex items-center gap-4">
+                        <img 
+                          src={booking.profiles_talent?.profile_photo_url || 'https://picsum.photos/seed/artist/100/100'} 
+                          alt={booking.profiles_talent?.stage_name}
+                          className="w-12 h-12 rounded-lg object-cover"
+                        />
+                        <div className="space-y-1">
+                          <h3 className="font-bold text-lg">{booking.profiles_talent?.stage_name || 'TBA'}</h3>
+                          <div className="flex flex-wrap gap-4 text-sm text-gray-400">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-4 h-4" /> {new Date(booking.event_date).toLocaleDateString()}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-4 h-4" /> {booking.start_time}
+                            </span>
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                          booking.status === 'confirmed' ? 'bg-brand-lime/20 text-brand-lime' :
-                          booking.status === 'quoted' ? 'bg-brand-purple/20 text-brand-purple' :
+                          booking.booking_status === 'confirmed' ? 'bg-brand-lime/20 text-brand-lime' :
+                          booking.booking_status === 'completed' ? 'bg-blue-500/20 text-blue-500' :
                           'bg-yellow-500/20 text-yellow-500'
                         }`}>
-                          {booking.status}
+                          {booking.booking_status}
                         </span>
                         <Button variant="outline" size="sm">Details</Button>
                       </div>

@@ -17,18 +17,18 @@ export const ArtistCard = ({ artist }) => {
       if (authUser) {
         setUser(authUser);
         const { data: profile } = await supabase
-          .from('Profiles_Users')
-          .select('Role')
-          .eq('UserUUID_PK', authUser.id)
+          .from('profiles_users')
+          .select('role')
+          .eq('id', authUser.id)
           .single();
-        setUserRole(profile?.Role);
+        setUserRole(profile?.role);
         
         // Check Heart status
         const { data: heartData } = await supabase
-          .from('Reviews_Heart')
+          .from('reviews_heart')
           .select('*')
-          .eq('UserUUID', authUser.id)
-          .eq('TalentUUID', artist.id)
+          .eq('ReviewerUserUUID', authUser.id)
+          .eq('talent_id', artist.id)
           .single();
         
         if (heartData) setIsHearted(true);
@@ -48,8 +48,8 @@ export const ArtistCard = ({ artist }) => {
       return;
     }
 
-    if (userRole !== 'user') {
-      setError('Only general client accounts can favourite.');
+    if (userRole !== 'client') {
+      setError('Only client accounts can favourite.');
       setTimeout(() => setError(null), 3000);
       return;
     }
@@ -57,19 +57,19 @@ export const ArtistCard = ({ artist }) => {
     try {
       if (isHearted) {
         const { error: deleteError } = await supabase
-          .from('Reviews_Heart')
+          .from('reviews_heart')
           .delete()
-          .eq('UserUUID', user.id)
-          .eq('TalentUUID', artist.id);
+          .eq('ReviewerUserUUID', user.id)
+          .eq('talent_id', artist.id);
         
         if (deleteError) throw deleteError;
         setIsHearted(false);
       } else {
         const { error: insertError } = await supabase
-          .from('Reviews_Heart')
+          .from('reviews_heart')
           .insert({
-            UserUUID: user.id,
-            TalentUUID: artist.id,
+            ReviewerUserUUID: user.id,
+            talent_id: artist.id,
             AppSource: 'en4tainment'
           });
         

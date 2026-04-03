@@ -1,50 +1,87 @@
 import React, { useState, useEffect } from 'react';
-import { bookingService } from '../services/bookingService';
-import { ARTISTS } from '../constants';
-import { Shield, Eye, Trash2, BrainCircuit, Filter, RefreshCw, Send } from 'lucide-react';
+import { supabase } from '../services/supabase';
+import { Shield, Eye, Trash2, BrainCircuit, Filter, RefreshCw, Send, AlertCircle } from 'lucide-react';
 
 export const Admin = () => {
   const [bookings, setBookings] = useState([]);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const loadBookings = () => {
-    setBookings(bookingService.getAll().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+  const loadBookings = async () => {
+    setLoading(true);
+    try {
+      // Fetch from quote_requests joining with profiles_clients and profiles_talent
+      const { data, error } = await supabase
+        .from('quote_requests')
+        .select(`
+          *,
+          profiles_clients (full_name, email),
+          profiles_talent (stage_name)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setBookings(data || []);
+    } catch (err) {
+      console.error('Admin Fetch Error:', err);
+      setError('Failed to load quote requests.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     loadBookings();
   }, []);
 
-  const handleStatusChange = (id, status) => {
-    bookingService.updateStatus(id, status);
-    loadBookings();
-    if (selectedBooking?.id === id) {
-      setSelectedBooking(prev => prev ? { ...prev, status } : null);
-    }
-  };
+  const handleStatusChange = async (id, status) => {
+    try {
+      const { error } = await supabase
+        .from('quote_requests')
+        .update({ status })
+        .eq('id', id);
 
-  const handleDelete = (id) => {
-    if (window.confirm("Delete this booking permanently?")) {
-      bookingService.delete(id);
+      if (error) throw error;
+      
       loadBookings();
-      setSelectedBooking(null);
+      if (selectedBooking?.id === id) {
+        setSelectedBooking(prev => prev ? { ...prev, status } : null);
+      }
+    } catch (err) {
+      console.error('Status Update Error:', err);
+      alert('Failed to update status.');
     }
   };
 
-  const getArtistName = (id) => {
-    const artist = ARTISTS.find(a => a.id === id);
-    return artist ? artist.name : "Not Specified";
+  const handleDelete = async (id) => {
+    if (window.confirm("Delete this quote request permanently?")) {
+      try {
+        const { error } = await supabase
+          .from('quote_requests')
+          .delete()
+          .eq('id', id);
+
+        if (error) throw error;
+        
+        loadBookings();
+        setSelectedBooking(null);
+      } catch (err) {
+        console.error('Delete Error:', err);
+        alert('Failed to delete request.');
+      }
+    }
   };
 
   const filteredBookings = bookings.filter(b => filter === 'all' || b.status === filter);
 
   const statusColors = {
-    pending: 'bg-brand-pink/20 text-brand-pink',
-    assigned: 'bg-brand-purple/20 text-brand-purple',
-    contacted: 'bg-brand-indigo/20 text-brand-indigo',
-    completed: 'bg-brand-lime/20 text-brand-lime',
-    cancelled: 'bg-gray-500/20 text-gray-400',
+    open: 'bg-brand-pink/20 text-brand-pink',
+    quoted: 'bg-brand-purple/20 text-brand-purple',
+    accepted: 'bg-brand-lime/20 text-brand-lime',
+    rejected: 'bg-gray-500/20 text-gray-400',
+    expired: 'bg-red-500/20 text-red-400',
   };
 
   return (
@@ -71,9 +108,10 @@ export const Admin = () => {
                 className="bg-transparent text-sm text-gray-300 outline-none cursor-pointer"
               >
                 <option value="all">All Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="assigned">Assigned</option>
-                <option value="completed">Completed</option>
+                <option value="open">Open</option>
+                <option value="quoted">Quoted</option>
+                <option value="accepted">Accepted</option>
+                <option value="rejected">Rejected</option>
               </select>
             </div>
             <button onClick={loadBookings} className="p-2 text-gray-400 hover:text-white transition-colors">
@@ -82,11 +120,22 @@ export const Admin = () => {
           </div>
         </div>
 
+        {error && (
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-500">
+            <AlertCircle size={20} />
+            <p>{error}</p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           
           {/* List Section */}
           <div className="xl:col-span-2 space-y-4">
-            {filteredBookings.length > 0 ? (
+            {loading ? (
+              <div className="flex justify-center py-20">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-purple"></div>
+              </div>
+            ) : filteredBookings.length > 0 ? (
               <div className="bg-brand-surface border border-white/5 rounded-2xl overflow-hidden">
                 <table className="w-full text-left">
                   <thead>
@@ -102,15 +151,15 @@ export const Admin = () => {
                     {filteredBookings.map((booking) => (
                       <tr key={booking.id} className={`hover:bg-white/5 transition-colors cursor-pointer ${selectedBooking?.id === booking.id ? 'bg-brand-purple/10' : ''}`} onClick={() => setSelectedBooking(booking)}>
                         <td className="px-6 py-4">
-                          <div className="text-white font-bold">{booking.name}</div>
-                          <div className="text-gray-500 text-xs">{booking.email}</div>
+                          <div className="text-white font-bold">{booking.profiles_clients?.full_name || 'Anonymous'}</div>
+                          <div className="text-gray-500 text-xs">{booking.profiles_clients?.email}</div>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-300">
-                          {new Date(booking.date).toLocaleDateString()}
+                          {new Date(booking.event_date).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4">
                           <span className="text-xs font-bold text-brand-lime uppercase">
-                            {getArtistName(booking.artistId)}
+                            {booking.profiles_talent?.stage_name || 'Not Assigned'}
                           </span>
                         </td>
                         <td className="px-6 py-4">
@@ -154,9 +203,9 @@ export const Admin = () => {
 
                 <div className="space-y-6">
                   <div>
-                    <label className="text-[10px] font-black text-brand-lime uppercase tracking-widest mb-1 block">Client Message</label>
+                    <label className="text-[10px] font-black text-brand-lime uppercase tracking-widest mb-1 block">Special Requirements</label>
                     <p className="text-gray-300 text-sm italic bg-brand-dark/50 p-4 rounded-xl border border-white/5">
-                      "{selectedBooking.notes || "No notes provided."}"
+                      "{selectedBooking.special_requirements || "No notes provided."}"
                     </p>
                   </div>
 
@@ -167,14 +216,14 @@ export const Admin = () => {
                       <span className="text-xs font-black text-brand-purple uppercase tracking-widest">AI Routing Suggestion</span>
                     </div>
                     <p className="text-white text-sm leading-relaxed mb-4">
-                      {selectedBooking.aiInsight}
+                      {selectedBooking.ai_insight || "AI analysis pending..."}
                     </p>
                     <div className="flex gap-2">
                        <button 
-                        onClick={() => handleStatusChange(selectedBooking.id, 'assigned')}
+                        onClick={() => handleStatusChange(selectedBooking.id, 'quoted')}
                         className="flex-grow bg-brand-purple text-white text-[10px] font-black uppercase py-2 rounded-lg hover:bg-brand-indigo transition-colors flex items-center justify-center gap-2"
                        >
-                         <Send size={12} /> Confirm Redirection
+                         <Send size={12} /> Mark as Quoted
                        </button>
                     </div>
                   </div>
@@ -187,17 +236,17 @@ export const Admin = () => {
                         onChange={(e) => handleStatusChange(selectedBooking.id, e.target.value)}
                         className="w-full bg-brand-dark border border-white/10 rounded-lg p-2 text-xs text-white outline-none"
                       >
-                        <option value="pending">Pending</option>
-                        <option value="assigned">Assigned</option>
-                        <option value="contacted">Contacted</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
+                        <option value="open">Open</option>
+                        <option value="quoted">Quoted</option>
+                        <option value="accepted">Accepted</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="expired">Expired</option>
                       </select>
                     </div>
                     <div>
                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Assigned To</label>
                        <div className="bg-brand-dark border border-white/10 rounded-lg p-2 text-xs text-brand-lime font-bold">
-                         {getArtistName(selectedBooking.artistId)}
+                         {selectedBooking.profiles_talent?.stage_name || 'Not Assigned'}
                        </div>
                     </div>
                   </div>

@@ -1,61 +1,85 @@
 
+import { supabase } from './supabase';
 import { ARTISTS } from '../constants';
 import { GoogleGenAI } from '@google/genai';
 
-const STORAGE_KEY = 'en4tainment_bookings';
-
 export const bookingService = {
-  getAll: () => {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
+  getAll: async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from('quote_requests')
+        .select(`
+          *,
+          profiles_venues (name_of_venue, name_of_location)
+        `)
+        .eq('client_user_id', user.id)
+        .order('event_date', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+      return [];
+    }
   },
 
-  save: async (request) => {
-    const bookings = bookingService.getAll();
-    
+  save: async (formData) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User must be logged in to request a quote.");
+
     // Generate AI Insight for routing
     let aiInsight = "Analyzing request...";
     try {
-      // Fix: Create GoogleGenAI instance right before making an API call
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const artistContext = ARTISTS.map(a => `${a.name} (${a.category})`).join(', ');
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `A client named ${request.name} wants to book an artist for ${request.location} on ${request.date}. 
-        Notes: "${request.notes}". 
+        model: 'gemini-2.0-flash',
+        contents: `A client wants to book an artist for ${formData.location} on ${formData.date}. 
+        Notes: "${formData.notes}". 
         Our artists are: ${artistContext}. 
         Which artist or category should we redirect this to? Give a 1-sentence professional recommendation.`,
       });
-      // Fix: Access the text property directly from GenerateContentResponse
       aiInsight = response.text || "No specific recommendation.";
     } catch (e) {
       aiInsight = "AI analysis currently unavailable.";
     }
 
-    const newBooking = {
-      ...request,
-      id: Math.random().toString(36).substr(2, 9),
-      createdAt: new Date().toISOString(),
-      status: 'pending',
-      aiInsight
-    };
+    const { data, error } = await supabase.from('quote_requests').insert({
+      client_user_id: user.id,
+      venue_id: formData.venueId || null,
+      reviewee_talent_id: formData.artistId || null,
+      event_type: formData.eventType || 'general',
+      event_date: formData.date,
+      start_time: formData.time,
+      duration_hours: 2,
+      location: formData.location,
+      budget_min: 0,
+      budget_max: null,
+      special_requirements: formData.notes || '',
+      ai_insight: aiInsight,
+      status: 'open'
+    }).select().single();
 
-    bookings.push(newBooking);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
-    return newBooking;
+    if (error) throw error;
+    return data;
   },
 
-  updateStatus: (id, status) => {
-    const bookings = bookingService.getAll();
-    const index = bookings.findIndex(b => b.id === id);
-    if (index !== -1) {
-      bookings[index].status = status;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
-    }
+  updateStatus: async (id, status) => {
+    const { error } = await supabase
+      .from('quote_requests')
+      .update({ status })
+      .eq('id', id);
+    if (error) throw error;
   },
 
-  delete: (id) => {
-    const bookings = bookingService.getAll().filter(b => b.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
+  delete: async (id) => {
+    const { error } = await supabase
+      .from('quote_requests')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
   }
 };

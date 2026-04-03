@@ -38,7 +38,7 @@ export const VenuePortal = () => {
 
   // Login State
   const [loginData, setLoginData] = useState({
-    username: '',
+    email: '',
     password: '',
   });
 
@@ -54,7 +54,7 @@ export const VenuePortal = () => {
     locationAddress: '',
     registeredPhone: '',
     mobileNumber: '',
-    username: '',
+    email: '',
     password: '',
     confirmPassword: '',
   });
@@ -65,25 +65,25 @@ export const VenuePortal = () => {
     setError(null);
 
     try {
-      // Mock authentication for now as requested
-      // In a real app, we'd check against Supabase
-      const { data, error: fetchError } = await supabase
-        .from('venues')
-        .select('*')
-        .eq('username', loginData.username)
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: loginData.email,
+        password: loginData.password,
+      });
+
+      if (authError) throw authError;
+
+      // Check if user is a venue
+      const { data: profile } = await supabase
+        .from('profiles_users')
+        .select('role')
+        .eq('id', data.user.id)
         .single();
 
-      if (fetchError || !data) {
-        throw new Error('Invalid username or password');
+      if (profile?.role !== 'venue') {
+        await supabase.auth.signOut();
+        throw new Error('This portal is for Venue accounts only.');
       }
 
-      const venue = data;
-      if (venue.status === 'pending') {
-        throw new Error('Your account is still pending approval by admin.');
-      }
-
-      // Store venue in local storage for mock auth
-      localStorage.setItem('venue_user', JSON.stringify(venue));
       navigate('/venue-dashboard');
     } catch (err) {
       setError(err.message);
@@ -104,36 +104,52 @@ export const VenuePortal = () => {
     }
 
     try {
-      // 1. Upload BR Photo (Mock URL for now, or use Supabase Storage if configured)
-      let brPhotoUrl = 'https://picsum.photos/400/300'; // Placeholder
-      
+      // 1. Sign up user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: signupData.email,
+        password: signupData.password,
+      });
+
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('Signup failed');
+
+      // 2. Create User Profile
+      const { error: userError } = await supabase.from('profiles_users').insert({
+        id: authData.user.id,
+        email: signupData.email,
+        phone: signupData.mobileNumber,
+        role: 'venue',
+        status: 'active'
+      });
+
+      if (userError) throw userError;
+
+      // 3. Upload BR Photo if exists
+      let brPhotoUrl = '';
       if (signupData.brPhoto) {
         const fileExt = signupData.brPhoto.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('br-certificates')
-          .upload(fileName, signupData.brPhoto);
+        const fileName = `${authData.user.id}-${Math.random()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('documents')
+          .upload(`venues/${fileName}`, signupData.brPhoto);
         
         if (!uploadError) {
-          const { data: publicUrl } = supabase.storage.from('br-certificates').getPublicUrl(fileName);
+          const { data: publicUrl } = supabase.storage.from('documents').getPublicUrl(`venues/${fileName}`);
           brPhotoUrl = publicUrl.publicUrl;
         }
       }
 
-      // 2. Create Venue Profile
-      const { error: insertError } = await supabase.from('venues').insert({
-        name: signupData.name,
-        registered_name: signupData.registeredName,
-        br_number: signupData.brNumber,
-        br_photo_url: brPhotoUrl,
-        location_lat: signupData.locationLat,
-        location_lng: signupData.locationLng,
-        registered_address: signupData.registeredAddress,
-        location_address: signupData.locationAddress,
-        registered_phone: signupData.registeredPhone,
-        mobile_number: signupData.mobileNumber,
-        username: signupData.username,
-        status: 'pending',
+      // 3. Create Venue Profile
+      const { error: insertError } = await supabase.from('profiles_venues').insert({
+        user_id: authData.user.id,
+        name_of_venue: signupData.name,
+        name_of_location: signupData.locationAddress,
+        contact_person: signupData.registeredName,
+        contact_email: signupData.email,
+        contact_phone: signupData.registeredPhone,
+        contact_mobile: signupData.mobileNumber,
+        is_verified: false,
+        url_venue_photo: brPhotoUrl
       });
 
       if (insertError) throw insertError;
@@ -185,15 +201,15 @@ export const VenuePortal = () => {
 
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Username</label>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">Email Address</label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
                       <input
-                        type="text"
+                        type="email"
                         required
                         className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 pl-10 pr-4 focus:outline-none focus:border-brand-purple"
-                        value={loginData.username}
-                        onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
+                        value={loginData.email}
+                        onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                       />
                     </div>
                   </div>
@@ -410,13 +426,13 @@ export const VenuePortal = () => {
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-400 mb-1">Username</label>
+                          <label className="block text-sm font-medium text-gray-400 mb-1">Email Address</label>
                           <input
-                            type="text"
+                            type="email"
                             required
                             className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 px-4 focus:outline-none focus:border-brand-purple"
-                            value={signupData.username}
-                            onChange={(e) => setSignupData({ ...signupData, username: e.target.value })}
+                            value={signupData.email}
+                            onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
                           />
                         </div>
                         <div>
