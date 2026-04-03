@@ -1,10 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { 
-  LayoutDashboard, Calendar, Clock, DollarSign, Image as ImageIcon, 
-  CheckCircle, AlertCircle, Star, Settings, LogOut, ChevronRight
+  Calendar, Clock, Image as ImageIcon, 
+  Star, Settings, LogOut
 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { supabase } from '../services/supabase';

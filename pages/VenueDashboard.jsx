@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Calendar, Clock, Users, Utensils, Languages, Star, Heart, LayoutDashboard, LogOut, CheckCircle, Clock as ClockIcon } from 'lucide-react';
+import { Plus, Calendar, Clock, Star, Heart, LogOut, Clock as ClockIcon, AlertCircle } from 'lucide-react';
 import { Button } from '../components/Button';
 import { supabase } from '../services/supabase';
+import { ARTISTS } from '../constants';
 
 export const VenueDashboard = () => {
   const [venue, setVenue] = useState(null);
@@ -11,6 +12,7 @@ export const VenueDashboard = () => {
   const [artists, setArtists] = useState([]);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   const [newBooking, setNewBooking] = useState({
@@ -88,7 +90,7 @@ export const VenueDashboard = () => {
         }));
         setArtists(mappedArtists);
       } else {
-        setArtists(STATIC_ARTISTS.slice(0, 5));
+        setArtists(ARTISTS.slice(0, 5));
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -167,6 +169,13 @@ export const VenueDashboard = () => {
             </Button>
           </div>
         </div>
+
+        {error && (
+          <div className="mb-6 flex items-center gap-2 text-red-500 bg-red-500/10 p-4 rounded-xl border border-red-500/20">
+            <AlertCircle className="w-5 h-5" />
+            {error}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column: Booking Management */}

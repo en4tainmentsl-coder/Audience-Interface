@@ -4,7 +4,7 @@ import { useParams, Link } from 'react-router-dom';
 import { ARTISTS as STATIC_ARTISTS } from '../constants';
 import { Button } from '../components/Button';
 import { StarRating } from '../components/StarRating';
-import { PlayCircle, Heart, LogIn, MessageSquare, AlertCircle, CheckCircle } from 'lucide-react';
+import { PlayCircle, Heart, LogIn, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '../services/supabase';
 
 export const ArtistDetail = () => {

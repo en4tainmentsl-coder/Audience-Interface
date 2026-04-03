@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageSquare, Send, X, Music, Sparkles } from 'lucide-react';
+import { Send, X, Music, Sparkles } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 import { ARTISTS } from '../constants';
 

@@ -1,10 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { 
-  LayoutDashboard, Calendar, Clock, Heart, CreditCard, 
-  CheckCircle, AlertCircle, Star, Settings, LogOut, ChevronRight,
+  Calendar, Clock, Heart, CreditCard, 
+  Star, Settings, LogOut, ChevronRight,
   Shield, Music, MapPin
 } from 'lucide-react';
 import { Button } from '../components/Button';

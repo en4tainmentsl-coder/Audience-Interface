@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '../components/Button';
-import { Mail, Phone, MapPin } from 'lucide-react';
+import { Mail } from 'lucide-react';
 
 export const Contact = () => {
   return (
@@ -20,26 +20,6 @@ export const Contact = () => {
               <h3 className="text-2xl font-bold text-white mb-6">Contact Information</h3>
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
-                  <div className="bg-brand-purple/20 p-3 rounded-lg text-brand-purple">
-                    <MapPin size={24} />
-                  </div>
-                  <div>
-                    <h4 className="text-white font-semibold">Our Office</h4>
-                    <p className="text-gray-400">723/122, 3rd Lane<br/>Lake Terrace<br/>Athurugiriya<br/>Sri Lanka</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-4">
-                  <div className="bg-brand-pink/20 p-3 rounded-lg text-brand-pink">
-                    <Phone size={24} />
-                  </div>
-                  <div>
-                    <h4 className="text-white font-semibold">Phone</h4>
-                    <p className="text-gray-400">+94 777-18 61 62</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
                   <div className="bg-brand-lime/20 p-3 rounded-lg text-brand-lime">
                     <Mail size={24} />
                   </div>
@@ -51,13 +31,7 @@ export const Contact = () => {
               </div>
             </div>
 
-            {/* Map Placeholder */}
-            <div className="bg-gray-800 h-64 rounded-2xl overflow-hidden relative">
-               <img src="https://picsum.photos/id/10/800/400" alt="Map" className="w-full h-full object-cover opacity-50 grayscale" />
-               <div className="absolute inset-0 flex items-center justify-center">
-                 <span className="bg-black/70 text-white px-4 py-2 rounded">Map View Placeholder</span>
-               </div>
-            </div>
+            {/* Map Placeholder removed */}
           </div>
 
           {/* Form Side */}

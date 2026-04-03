@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Facebook, Twitter, Instagram, Mail, Phone, MapPin, ShieldCheck, Youtube } from 'lucide-react';
+import { Facebook, Instagram, Mail, ShieldCheck, Youtube } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { LOGO_URL, SOCIAL_LINKS } from '../constants';
 
@@ -38,14 +38,6 @@ export const Footer = () => {
           <div>
             <h3 className="text-white font-semibold mb-4 border-b border-brand-lime w-fit pb-1">Contact Us</h3>
             <ul className="space-y-3">
-              <li className="flex items-start gap-3 text-gray-400">
-                <MapPin size={18} className="text-brand-pink mt-1" />
-                <span>723/122,<br />3rd Lane, Lake Terrace,<br />Athurugiriya</span>
-              </li>
-              <li className="flex items-center gap-3 text-gray-400">
-                <Phone size={18} className="text-brand-pink" />
-                <span>+94 (77) 718-6162</span>
-              </li>
               <li className="flex items-center gap-3 text-gray-400">
                 <Mail size={18} className="text-brand-pink" />
                 <span>booking@en4tainment.com</span>

@@ -13,16 +13,14 @@ export const Artists = () => {
   const [searchTerm, setSearchTerm] = useState(urlQuery);
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [artists, setArtists] = useState(STATIC_ARTISTS);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchArtists();
   }, []);
 
   const fetchArtists = async () => {
-    setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('profiles_talent')
         .select(`
           id,
@@ -62,8 +60,6 @@ export const Artists = () => {
     } catch (error) {
       console.error('Error fetching artists:', error);
       setArtists(STATIC_ARTISTS);
-    } finally {
-      setLoading(false);
     }
   };
 

@@ -85,55 +85,53 @@ export const ArtistCard = ({ artist }) => {
 
   return (
     <div className="group relative bg-brand-surface rounded-2xl overflow-hidden hover:-translate-y-2 transition-transform duration-300 shadow-xl border border-white/5 hover:border-brand-purple/50">
-      
-      <div className="relative h-64 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-t from-brand-surface to-transparent opacity-60 z-10" />
-        <img 
-          src={artist.imageUrl} 
-          alt={artist.name} 
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 filter saturate-50 group-hover:saturate-100" 
-        />
-        <div className="absolute bottom-4 left-4 z-20">
-          <span className="bg-brand-purple text-white text-xs px-2 py-1 rounded-md uppercase tracking-wide font-bold">
-            {artist.category}
-          </span>
-        </div>
-        
-        <button 
-          onClick={handleHeart}
-          className={`absolute top-4 right-4 z-20 p-2 rounded-full backdrop-blur-md transition-all ${
-            isHearted ? 'bg-brand-pink text-white' : 'bg-black/40 text-white hover:bg-brand-pink/50'
-          }`}
-        >
-          <Heart className={`w-5 h-5 ${isHearted ? 'fill-current' : ''}`} />
-        </button>
-
-        {error && (
-          <div className="absolute top-16 right-4 z-30 bg-red-500 text-white text-[10px] px-2 py-1 rounded shadow-lg animate-fade-in flex items-center gap-1">
-            <AlertCircle size={10} /> {error}
+      <Link to={`/artists/${artist.id}`} className="block h-full">
+        <div className="relative h-64 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-t from-brand-surface to-transparent opacity-60 z-10" />
+          <img 
+            src={artist.imageUrl} 
+            alt={artist.name} 
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 filter saturate-50 group-hover:saturate-100" 
+          />
+          <div className="absolute bottom-4 left-4 z-20">
+            <span className="bg-brand-purple text-white text-xs px-2 py-1 rounded-md uppercase tracking-wide font-bold">
+              {artist.category}
+            </span>
           </div>
-        )}
-      </div>
-
-      <div className="p-6">
-        <div className="flex justify-between items-start mb-2">
-          <h3 className="text-xl font-bold text-white group-hover:text-brand-lime transition-colors">
-            {artist.name}
-          </h3>
-          <StarRating initialRating={artist.rating} readonly size={16} />
         </div>
-        
-        <p className="text-gray-400 text-sm mb-6 line-clamp-2">
-          {artist.description}
-        </p>
 
-        <Link 
-          to={`/artists/${artist.id}`} 
-          className="inline-flex items-center text-sm font-semibold text-brand-pink hover:text-brand-lime transition-colors gap-1"
-        >
-          View Profile <ArrowRight size={16} />
-        </Link>
-      </div>
+        <div className="p-6">
+          <div className="flex justify-between items-start mb-2">
+            <h3 className="text-xl font-bold text-white group-hover:text-brand-lime transition-colors">
+              {artist.name}
+            </h3>
+            <StarRating initialRating={artist.rating} readonly size={16} />
+          </div>
+          
+          <p className="text-gray-400 text-sm mb-6 line-clamp-2">
+            {artist.description}
+          </p>
+
+          <div className="inline-flex items-center text-sm font-semibold text-brand-pink group-hover:text-brand-lime transition-colors gap-1">
+            View Profile <ArrowRight size={16} />
+          </div>
+        </div>
+      </Link>
+
+      <button 
+        onClick={handleHeart}
+        className={`absolute top-4 right-4 z-20 p-2 rounded-full backdrop-blur-md transition-all ${
+          isHearted ? 'bg-brand-pink text-white' : 'bg-black/40 text-white hover:bg-brand-pink/50'
+        }`}
+      >
+        <Heart className={`w-5 h-5 ${isHearted ? 'fill-current' : ''}`} />
+      </button>
+
+      {error && (
+        <div className="absolute top-16 right-4 z-30 bg-red-500 text-white text-[10px] px-2 py-1 rounded shadow-lg animate-fade-in flex items-center gap-1">
+          <AlertCircle size={10} /> {error}
+        </div>
+      )}
     </div>
   );
 };
