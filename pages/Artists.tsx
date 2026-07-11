@@ -42,7 +42,10 @@ export const Artists: React.FC = () => {
       if (data && data.length > 0) {
         // Safe casting the returned Supabase types
         const mappedArtists: Artist[] = data.map((talent: any) => {
-          const media = (talent.talent_media as Array<{ cloudinary_secure_url: string; is_featured: boolean; resource_type: string }>) || [];
+          const rawMedia = talent.talent_media;
+          const media = Array.isArray(rawMedia)
+            ? rawMedia
+            : (rawMedia && typeof rawMedia === 'object' ? [rawMedia] : []);
           const genres = (talent.talent_genres as Array<{ is_primary: boolean; genres?: { genre_name: string } }>) || [];
 
           const primaryGenre: string = genres.find(g => g.is_primary)?.genres?.genre_name || 'Artist';
