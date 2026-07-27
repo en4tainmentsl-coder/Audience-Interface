@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { motion } from 'framer-motion';
 import { Building2, MapPin, Lock, CheckCircle, AlertCircle, Upload, Map as MapIcon, Info, Mail } from 'lucide-react';
 import { Button } from '../components/Button';
