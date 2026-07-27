@@ -1,6 +1,6 @@
 import React from 'react';
 import { Facebook, Instagram, Mail, ShieldCheck, Youtube } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { LOGO_URL, SOCIAL_LINKS } from '../constants';
 
 export const Footer: React.FC = () => {
