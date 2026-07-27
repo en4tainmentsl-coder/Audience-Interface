@@ -289,6 +289,7 @@ export const ArtistDetail: React.FC = () => {
       reviewee_talent_id: id,
       reviewer_user_id: user.id,
       rating: rating,
+      overall_rating: rating,
       comment: comment,
       booking_id: completedBookingId
     });
