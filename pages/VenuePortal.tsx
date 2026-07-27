@@ -78,38 +78,55 @@ export const VenuePortal: React.FC = () => {
   });
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
+  e.preventDefault();
+  setLoading(true);
+  setError(null);
 
-    try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email: loginData.email,
-        password: loginData.password,
-      });
+  try {
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
+      email: loginData.email,
+      password: loginData.password,
+    });
 
-      if (authError) throw authError;
+    if (authError) throw authError;
 
-      // Check if user is a venue
-      const { data: profile } = await supabase
-        .from('profiles_users')
-        .select('role')
-        .eq('id', data.user?.id)
-        .single();
+    // Check if user is a venue
+    const { data: profile } = await supabase
+      .from('profiles_users')
+      .select('role')
+      .eq('id', data.user?.id)
+      .single();
 
-      if (profile?.role !== 'venue') {
-        await supabase.auth.signOut();
-        throw new Error('This portal is for Venue accounts only.');
-      }
-
-      navigate('/venue-dashboard');
-    } catch (err: any) {
-      setError(err?.message || 'Login failed');
-    } finally {
-      setLoading(false);
+    if (profile?.role !== 'venue') {
+      await supabase.auth.signOut();
+      throw new Error('This portal is for Venue accounts only.');
     }
-  };
 
+    // Check venue approval status before granting dashboard access
+    const { data: venueProfile } = await supabase
+      .from('profiles_venues')
+      .select('approval_status')
+      .eq('user_id', data.user?.id)
+      .single();
+
+    if (venueProfile?.approval_status === 'approved') {
+      navigate('/venue-dashboard');
+    } else if (venueProfile?.approval_status === 'pending_approval') {
+      await supabase.auth.signOut();
+      setError('Your venue profile is still under review. We will contact you once approved.');
+    } else if (venueProfile?.approval_status === 'rejected') {
+      await supabase.auth.signOut();
+      setError('Your venue registration was not approved. Please contact support for details.');
+    } else {
+      await supabase.auth.signOut();
+      setError('There was a problem with your account. Please contact support.');
+    }
+  } catch (err: any) {
+    setError(err?.message || 'Login failed');
+  } finally {
+    setLoading(false);
+  }
+};
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -167,7 +184,8 @@ export const VenuePortal: React.FC = () => {
         contact_phone: signupData.registeredPhone,
         contact_mobile: signupData.mobileNumber,
         is_verified: false,
-        url_venue_photo: brPhotoUrl
+        url_venue_photo: brPhotoUrl,
+        approval_status: 'pending_approval'
       });
 
       if (insertError) throw insertError;
