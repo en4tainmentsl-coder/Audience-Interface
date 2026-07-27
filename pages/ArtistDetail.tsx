@@ -117,13 +117,31 @@ export const ArtistDetail: React.FC = () => {
         setReviews((reviewsData as unknown) as ReviewStar[]);
       }
 
+      const getVisitorId = (): string => {
+        let vid = localStorage.getItem('en4_visitor_id');
+        if (!vid) {
+          vid = crypto.randomUUID();
+          localStorage.setItem('en4_visitor_id', vid);
+        }
+        return vid;
+      };
+      
       // Check Heart if user is logged in
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (authUser) {
         const { data: heartData } = await supabase
-          .from('talent_favourites')            // ✅ renamed table
+          .from('talent_favourites')
           .select('*')
-          .eq('user_id', authUser.id)           // ✅ renamed column
+          .eq('user_id', authUser.id)
+          .eq('talent_id', id)
+          .single();
+        if (heartData) setIsHearted(true);
+      } else {
+        const visitorId = getVisitorId();
+        const { data: heartData } = await supabase
+          .from('talent_favourites')
+          .select('*')
+          .eq('visitor_id', visitorId)
           .eq('talent_id', id)
           .single();
         if (heartData) setIsHearted(true);
@@ -151,70 +169,80 @@ export const ArtistDetail: React.FC = () => {
   }, [id]);
 
   const handleHeart = async (): Promise<void> => {
-    setError(null);
-    setSuccess(null);
+  setError(null);
+  setSuccess(null);
+  if (!id) return;
 
-    if (!user || !id) {
-      setError('Please login to favourite this artist.');
-      return;
-    }
-
-    if (userRole !== 'client') {
-      setError('Only client accounts are permitted to favourite artists.');
-      return;
-    }
-
-    try {
-      if (isHearted) {
+  if (isHearted) {
+    if (user && userRole === 'client') {
+      try {
         const { error: deleteError } = await supabase
           .from('talent_favourites')
           .delete()
           .eq('user_id', user.id)
           .eq('talent_id', id);
-        
         if (deleteError) throw deleteError;
         setIsHearted(false);
         setSuccess('Removed from favourites.');
-      } else {
-        // CORRECT
-        const { error: insertError } = await supabase
-          .from('talent_favourites')
-          .insert({
-            user_id: user.id,
-            talent_id: id,
-            app_source: 'en4tainment'
-          });
-        
-        if (insertError) throw insertError;
-        setIsHearted(true);
-        setSuccess('Added to favourites!');
+      } catch (err: any) {
+        setError('Failed to remove heart: ' + err.message);
       }
-    } catch (err: any) {
-      setError('Failed to update heart rating: ' + err.message);
+    } else {
+      setError("You've already hearted this artist.");
     }
-  };
+    return;
+  }
 
+  try {
+    if (user && userRole === 'client') {
+      const { error: insertError } = await supabase
+        .from('talent_favourites')
+        .insert({ user_id: user.id, talent_id: id, app_source: 'en4tainment' });
+      if (insertError) throw insertError;
+    } else {
+      const visitorId = getVisitorId();
+      const { error: insertError } = await supabase
+        .from('talent_favourites')
+        .insert({ visitor_id: visitorId, talent_id: id, app_source: 'en4tainment' });
+      if (insertError) {
+        if (insertError.code === '23505') {
+          setError("You've already hearted this artist.");
+          setIsHearted(true);
+          return;
+        }
+        throw insertError;
+      }
+    }
+    setIsHearted(true);
+    setSuccess('Added to favourites!');
+  } catch (err: any) {
+    setError('Failed to save your heart: ' + err.message);
+  }
+};
+  
   const handleAddReview = async (rating: number): Promise<void> => {
-    setError(null);
-    setSuccess(null);
+  setError(null);
+  setSuccess(null);
 
-    if (!user || !id) {
-      setError('Please login to leave a rating.');
-      return;
-    }
+  if (!user || !id) {
+    setError('Please login to leave a rating.');
+    return;
+  }
 
-    if (userRole !== 'venue') {
-      setError('Only Venue accounts (organisers) are permitted to submit star ratings.');
-      return;
-    }
+  if (userRole !== 'client' && userRole !== 'venue') {
+    setError('Only Client or Venue accounts are permitted to submit star ratings.');
+    return;
+  }
 
-    if (rating < 1 || rating > 5) {
-      setError('Rating must be between 1 and 5.');
-      return;
-    }
+  if (rating < 1 || rating > 5) {
+    setError('Rating must be between 1 and 5.');
+    return;
+  }
 
-    try {
-      // Check for completed booking
+  try {
+    let completedBookingId: string | null = null;
+
+    if (userRole === 'venue') {
       const { data: venueProfile } = await supabase
         .from('profiles_venues')
         .select('id')
@@ -235,32 +263,50 @@ export const ArtistDetail: React.FC = () => {
         .limit(1)
         .single();
 
-      if (!completedBooking) {
-        setError('You can only review talent after a completed booking.');
+      completedBookingId = completedBooking?.id ?? null;
+    } else {
+      const { data: completedBooking } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('client_user_id', user.id)
+        .eq('talent_id', id)
+        .eq('booking_status', 'completed')
+        .limit(1)
+        .single();
+
+      completedBookingId = completedBooking?.id ?? null;
+    }
+
+    if (!completedBookingId) {
+      setError('You can only review talent after a completed booking.');
+      return;
+    }
+
+    const comment: string | null = prompt('Enter your review:');
+    if (!comment) return;
+
+    const { error: reviewError } = await supabase.from('reviews_star').insert({
+      reviewee_talent_id: id,
+      reviewer_user_id: user.id,
+      rating: rating,
+      comment: comment,
+      booking_id: completedBookingId
+    });
+
+    if (reviewError) {
+      if (reviewError.code === '23505') {
+        setError("You've already rated this booking.");
         return;
       }
-
-      const comment: string | null = prompt('Enter your review:');
-      if (!comment) return;
-
-      // Insert into reviews_star table
-      const { error: reviewError } = await supabase.from('reviews_star').insert({
-        reviewee_talent_id: id,
-        reviewer_user_id: user.id,
-        rating: rating,
-        comment: comment,
-        booking_id: completedBooking.id   // you already fetch this above as `completedBooking`
-      });
-
-      if (reviewError) throw reviewError;
-
-      setSuccess('Rating submitted successfully!');
-      fetchArtistData();
-    } catch (err: any) {
-      setError('Failed to submit rating: ' + err.message);
+      throw reviewError;
     }
-  };
 
+    setSuccess('Rating submitted successfully!');
+  } catch (err: any) {
+    setError('Failed to submit rating: ' + err.message);
+  }
+};
+  
   if (!artist) return <div className="pt-32 text-center text-white" id="artist-not-found">Artist not found</div>;
 
   return (
