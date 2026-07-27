@@ -235,20 +235,17 @@ export const VenueDashboard: React.FC = () => {
   const loadDashboardData = useCallback(async (): Promise<void> => {
     try {
       let authUser: any = null;
-      try {
-        const { data } = await supabase.auth.getUser();
-        authUser = data.user;
-      } catch (e) {
-        console.warn("Auth check failed, using demo mode", e);
-      }
+try {
+  const { data } = await supabase.auth.getUser();
+  authUser = data.user;
+} catch (e) {
+  console.error("Auth check failed", e);
+}
 
-      // --- DEMO BYPASS ---
-      // Set to true to force demo mode, or it will auto-trigger if not logged in
-      const isDemo: boolean = !authUser || true; 
-      
-      if (isDemo && !authUser) {
-        authUser = { id: 'demo-user-id', email: 'demo@en4tainment.com' };
-      }
+if (!authUser) {
+  navigate('/venue-portal');
+  return;
+}
 
       // 1. Fetch Venue Profile
       let venueProfile: VenueProfile | null = null;
