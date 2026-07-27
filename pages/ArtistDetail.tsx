@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router';
 import { ARTISTS as STATIC_ARTISTS } from '../constants';
 import { Button } from '../components/Button';
 import { StarRating } from '../components/StarRating';

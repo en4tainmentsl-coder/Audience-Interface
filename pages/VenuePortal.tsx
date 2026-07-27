@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { motion } from 'framer-motion';
 import { Building2, MapPin, Lock, CheckCircle, AlertCircle, Upload, Map as MapIcon, Info, Mail } from 'lucide-react';
 import { Button } from '../components/Button';
@@ -254,33 +254,6 @@ export const VenuePortal: React.FC = () => {
 
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? 'Logging in...' : 'Login'}
-                  </Button>
-
-                  <div className="relative py-4">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-white/10"></div>
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-brand-surface px-2 text-gray-500">Or explore the UI</span>
-                    </div>
-                  </div>
-
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    className="w-full border-brand-purple/50 text-brand-purple hover:bg-brand-purple hover:text-white"
-                    onClick={() => {
-                      const mockVenue = {
-                        id: 'mock_venue_123',
-                        name: 'The Grand Jazz Club',
-                        username: 'demo_venue',
-                        status: 'approved'
-                      };
-                      localStorage.setItem('venue_user', JSON.stringify(mockVenue));
-                      navigate('/venue-dashboard');
-                    }}
-                  >
-                    Demo Login (Bypass Auth)
                   </Button>
                 </form>
               </div>

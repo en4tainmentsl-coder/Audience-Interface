@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { 
   Calendar, MessageSquare, Bell, LogOut, ChevronDown, ChevronUp, 
   CheckCircle, Clock, AlertCircle, Star, FileText, 
@@ -235,152 +235,33 @@ export const VenueDashboard: React.FC = () => {
   const loadDashboardData = useCallback(async (): Promise<void> => {
     try {
       let authUser: any = null;
-      try {
-        const { data } = await supabase.auth.getUser();
-        authUser = data.user;
-      } catch (e) {
-        console.warn("Auth check failed, using demo mode", e);
-      }
+try {
+  const { data } = await supabase.auth.getUser();
+  authUser = data.user;
+} catch (e) {
+  console.error("Auth check failed", e);
+}
 
-      // --- DEMO BYPASS ---
-      // Set to true to force demo mode, or it will auto-trigger if not logged in
-      const isDemo: boolean = !authUser || true; 
-      
-      if (isDemo && !authUser) {
-        authUser = { id: 'demo-user-id', email: 'demo@en4tainment.com' };
-      }
+if (!authUser) {
+  navigate('/venue-portal');
+  return;
+}
 
       // 1. Fetch Venue Profile
       let venueProfile: VenueProfile | null = null;
-      if (authUser && !isDemo) {
-        const { data, error: venueError } = await supabase
-          .from('profiles_venues')
-          .select('*')
-          .eq('user_id', authUser.id)
-          .single();
-        if (data) venueProfile = data as unknown as VenueProfile;
-      }
-
-      // Fallback to Demo Profile
-      if (!venueProfile && isDemo) {
-        venueProfile = {
-          id: 'demo-venue-id',
-          user_id: 'demo-user-id',
-          name_of_venue: 'The Jazz Lounge (Demo)',
-          is_verified: true,
-          name_of_location: 'Downtown',
-          size_of_space: 'Medium',
-          address_row_1: '123 Jazz St',
-          address_city: 'London',
-          address_country: 'UK',
-          contact_person: 'John Demo',
-          contact_email: 'demo@example.com',
-          contact_phone: '+44 123 456 789',
-          url_venue_photo: 'https://picsum.photos/seed/venue/800/600',
-          required_time_slot: 'Evening',
-          performance_days: ['Friday', 'Saturday'],
-          type_of_occasion: 'Live Music',
-          music_genre_preference: ['Jazz', 'Blues'],
-          language_preference: 'English',
-          meals_for_talent: true,
-          audience_age_range: '25-65'
-        };
-      }
-
+const { data, error: venueError } = await supabase
+  .from('profiles_venues')
+  .select('*')
+  .eq('user_id', authUser.id)
+  .single();
+if (data) venueProfile = data as unknown as VenueProfile;
       if (!venueProfile) {
         setError("Venue profile not found. Please contact support.");
         setLoading(false);
         return;
       }
       setVenue(venueProfile);
-
-      if (isDemo) {
-        // Mock Quote Requests
-        setQuoteRequests([
-          {
-            id: 'req-1',
-            event_type: 'Jazz Night Special',
-            event_date: '2026-05-15',
-            start_time: '20:00',
-            duration_hours: 3,
-            budget_min: 500,
-            budget_max: 1000,
-            currency: 'GBP',
-            status: 'open',
-            special_requirements: 'Needs to bring own sound system and be comfortable with a small stage.',
-            quotes: [
-              {
-                id: 'quote-1',
-                talent_id: 'talent-1',
-                quoted_amount: 800,
-                total_client_price: 880,
-                quote_status: 'sent',
-                notes_to_client: 'I am a professional jazz saxophonist with 10 years experience in lounge settings.',
-                profiles_talent: {
-                  stage_name: 'Miles Davis Jr.',
-                  profile_photo_url: 'https://picsum.photos/seed/miles/100/100',
-                  rating: 4.9,
-                  type_of_performer: 'Saxophonist'
-                }
-              }
-            ]
-          }
-        ]);
-
-        // Mock Upcoming Bookings
-        setUpcomingBookings([
-          {
-            id: 'booking-1',
-            event_date: '2026-04-10',
-            start_time: '19:00',
-            end_time: '22:00',
-            booking_status: 'confirmed',
-            agreed_gross_amount: 1200,
-            currency: 'GBP',
-            message_to_talent: 'Looking forward to having you! Please arrive 30 mins early for setup.',
-            profiles_talent: {
-              user_id: 'talent-user-1',
-              stage_name: 'The Funky Four',
-              profile_photo_url: 'https://picsum.photos/seed/band/100/100',
-              rating: 5,
-              type_of_performer: 'Funk Band',
-              is_verified: true,
-              mobile: '+44 777 888 999',
-              email: 'funky@example.com'
-            },
-            contracts: { status: 'signed' },
-            payments: [{ id: 'p-1', payment_type: 'deposit', payment_status: 'completed' }]
-          }
-        ]);
-
-        // Mock Past Bookings
-        setPastBookings([
-          {
-            id: 'past-1',
-            event_date: '2026-03-20',
-            booking_status: 'completed',
-            agreed_gross_amount: 900,
-            currency: 'GBP',
-            profiles_talent: {
-              stage_name: 'Sarah Jazz',
-              profile_photo_url: 'https://picsum.photos/seed/sarah/100/100',
-              rating: 4.8
-            },
-            reviews_star: [{ rating: 5, overall_rating: 5, comment: 'Amazing performance!' }]
-          }
-        ]);
-
-        // Mock Notifications
-        setNotifications([
-          { id: 'n1', message_preview: 'New quote received for Jazz Night Special', send_at: new Date().toISOString() },
-          { id: 'n2', message_preview: 'Booking confirmed for The Funky Four', send_at: new Date(Date.now() - 3600000).toISOString() }
-        ]);
-        setUnreadNotificationCount(2);
-
-        setLoading(false);
-        return;
-      }
-
+      
       // Parallel Queries (Real Data)
       const [
         quoteRequestsRes,

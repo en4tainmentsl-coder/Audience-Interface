@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router';
 import { ARTISTS } from '../constants';
 import { Button } from '../components/Button';
 import { supabase } from '../services/supabase';

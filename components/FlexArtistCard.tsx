@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { ArrowRight, Heart, AlertCircle } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { Artist } from '../types';

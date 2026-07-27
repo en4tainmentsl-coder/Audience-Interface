@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { Menu, X, Search } from 'lucide-react';
 import { Button } from './Button';
 import { LOGO_URL } from '../constants';
