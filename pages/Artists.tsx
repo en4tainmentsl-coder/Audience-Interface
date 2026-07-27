@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router';
 import { FlexArtistCardRow } from '../components/FlexArtistCard';
 import { ARTISTS as STATIC_ARTISTS } from '../constants';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
