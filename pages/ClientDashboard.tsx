@@ -95,12 +95,12 @@ export const ClientDashboard: React.FC = () => {
 
       // Fetch Favorites
       const { data: favoritesData } = await supabase
-      .from('reviews_heart')
-      .select(`
-      id,
-      profiles_talent (id, stage_name, profile_photo_url, rating)
-      `)
-      .eq('user_id', userId);
+        .from('talent_favourites')
+        .select(`
+          id,
+          profiles_talent (id, stage_name, profile_photo_url, rating)
+          `)
+          .eq('user_id', userId);
       
       setFavorites(((favoritesData as unknown) as ClientDashboardFavorite[]) || []);
     } catch (error) {
