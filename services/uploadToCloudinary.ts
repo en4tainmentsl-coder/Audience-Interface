@@ -155,7 +155,7 @@ export async function uploadToCloudinary(
   const format       = (cloudinaryData.format       as string) ?? null
   const bytes        = cloudinaryData.bytes         as number
   const width        = (cloudinaryData.width        as number) ?? null
-  const height        = (cloudinaryData.height        as number) ?? null
+  const height       = (cloudinaryData.height       as number) ?? null
 
   // ── Step 3: Save metadata to Supabase via process-upload ────────────────
   const processBody: Record<string, unknown> = {
