@@ -1,14 +1,21 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // uploadToR2.ts  —  En4tainment / En410
-// Uploads SENSITIVE assets to the private Cloudflare R2 bucket.
+// Uploads SENSITIVE assets (KYC images, venue documents) to the private
+// Cloudflare R2 bucket.
 //
 // Scope: kyc_front, kyc_back, venue_document.
 // Public assets (avatars, covers, portfolio) go via uploadToCloudinary.
 //
-// FLOW:
-//   1. r2-sign-upload  → presigned PUT URL + object key
-//   2. PUT direct to R2
-//   3. process-upload  → persist metadata in Supabase
+// CHANGED: this now posts the file to `upload-document`, a single shared
+// Edge Function used by both Talent_Interface and Audience-Interface. It
+// receives the bytes, inspects them, and writes to R2 itself.
+//
+// The previous flow used `r2-sign-upload` (presigned PUT), which has been
+// deleted. It could only pin the *declared* Content-Type header — a modified
+// client could declare application/pdf and send anything — and it accepted
+// a client-supplied talent_id/related_entity_id with no ownership check.
+// Both problems are gone here: ownership is resolved from the JWT, and for
+// venue_document the caller must actually own the named venue.
 //
 // There is deliberately NO mock fallback. A silent fake success on an
 // identity document is worse than a visible error.
@@ -23,7 +30,6 @@ export type R2AssetType = 'kyc_front' | 'kyc_back' | 'venue_document'
 export interface R2UploadOptions {
   file:        File
   assetType:   R2AssetType
-  talentId?:   string   // profiles_talent.id — required for kyc_*
   venueId?:    string   // profiles_venues.id — required for venue_document
   onProgress?: (pct: number) => void
 }
@@ -32,11 +38,14 @@ export interface R2UploadResult {
   success:        boolean
   objectKey?:     string
   storageBucket?: string
+  kycStatus?:     string
   error?:         string
-  stage?:         'validate' | 'sign' | 'upload' | 'save'
+  stage?:         'validate' | 'upload'
 }
 
-// ── Client-side guards (first checkpoint, not the last) ──────────────────
+// ── Client-side guards (first checkpoint, not the last — the server         ──
+// re-checks both against the actual received bytes, and its answer is the
+// one that counts) ──────────────────────────────────────────────────────
 
 const ALLOWED_MIME = [
   'image/jpeg',
@@ -45,49 +54,16 @@ const ALLOWED_MIME = [
   'application/pdf',
 ]
 
-const MAX_BYTES: Record<R2AssetType, number> = {
-  kyc_front:      8  * 1024 * 1024,
-  kyc_back:       8  * 1024 * 1024,
-  venue_document: 15 * 1024 * 1024,
-}
-
-// ── PUT with progress ────────────────────────────────────────────────────
-
-function putWithProgress(
-  url: string,
-  file: File,
-  contentType: string,
-  onProgress?: (pct: number) => void,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest()
-    xhr.open('PUT', url, true)
-
-    // Must match the Content-Type signed by r2-sign-upload, or R2
-    // rejects with SignatureDoesNotMatch.
-    xhr.setRequestHeader('Content-Type', contentType)
-
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) onProgress?.((e.loaded / e.total) * 100)
-    }
-    xhr.onload = () =>
-      xhr.status >= 200 && xhr.status < 300
-        ? resolve()
-        : reject(new Error(`R2 responded ${xhr.status}: ${xhr.responseText}`))
-    xhr.onerror = () => reject(new Error('Network error during upload'))
-    xhr.ontimeout = () => reject(new Error('Upload timed out'))
-
-    xhr.timeout = 120_000
-    xhr.send(file)
-  })
-}
+// Must match MAX_BYTES in upload-document. That function enforces one cap
+// for every asset_type it accepts — the old 8MB/15MB split no longer applies.
+const MAX_BYTES = 2 * 1024 * 1024 // 2 MiB
 
 // ── Main ─────────────────────────────────────────────────────────────────
 
 export async function uploadToR2(
   opts: R2UploadOptions,
 ): Promise<R2UploadResult> {
-  const { file, assetType, talentId, venueId, onProgress } = opts
+  const { file, assetType, venueId, onProgress } = opts
 
   // ── 0. Validate locally ────────────────────────────────────────────────
   if (!ALLOWED_MIME.includes(file.type)) {
@@ -98,11 +74,10 @@ export async function uploadToR2(
     }
   }
 
-  if (file.size > MAX_BYTES[assetType]) {
-    const mb = Math.round(MAX_BYTES[assetType] / 1048576)
+  if (file.size > MAX_BYTES) {
     return {
       success: false,
-      error:   `File is too large. Maximum size is ${mb}MB.`,
+      error:   'File is too large. Maximum size is 2MB.',
       stage:   'validate',
     }
   }
@@ -110,73 +85,32 @@ export async function uploadToR2(
   if (assetType === 'venue_document' && !venueId) {
     return { success: false, error: 'venueId is required', stage: 'validate' }
   }
-  if (assetType !== 'venue_document' && !talentId) {
-    return { success: false, error: 'talentId is required', stage: 'validate' }
+
+  // ── 1. Single call: auth, ownership, size, content inspection, R2 write, ──
+  // DB row. No talent_id or arbitrary related_entity_id is trusted from the
+  // client for kyc_front/kyc_back — the talent is resolved from the JWT.
+  // For venue_document, related_entity_id is checked against profiles_venues
+  // ownership server-side before anything is written.
+  onProgress?.(10)
+
+  const form = new FormData()
+  form.append('asset_type', assetType)
+  form.append('file', file)
+  form.append('file_name', file.name)
+  if (assetType === 'venue_document' && venueId) {
+    form.append('related_entity_id', venueId)
   }
 
-  // ── 1. Sign ────────────────────────────────────────────────────────────
-  onProgress?.(5)
+  const { data, error } = await supabase.functions.invoke('upload-document', {
+    body: form,
+  })
 
-  const { data: signData, error: signError } = await supabase.functions.invoke(
-    'r2-sign-upload',
-    {
-      body: {
-        asset_type:        assetType,
-        content_type:      file.type,
-        size_bytes:        file.size,
-        talent_id:         talentId,
-        related_entity_id: venueId,
-        file_name:         file.name,
-      },
-    },
-  )
-
-  if (signError || !signData?.upload_url) {
-    console.error('r2-sign-upload failed:', signError, signData)
+  if (error || data?.error) {
+    console.error('upload-document failed:', error, data)
     return {
       success: false,
-      error:   signData?.error ?? signError?.message ?? 'Could not authorise upload',
-      stage:   'sign',
-    }
-  }
-
-  // ── 2. Direct PUT to R2 ────────────────────────────────────────────────
-  try {
-    await putWithProgress(
-      signData.upload_url,
-      file,
-      signData.content_type,
-      (p) => onProgress?.(5 + Math.round(p * 0.8)),
-    )
-  } catch (err) {
-    console.error('R2 upload error:', err)
-    return { success: false, error: 'Upload failed. Please try again.', stage: 'upload' }
-  }
-
-  onProgress?.(85)
-
-  // ── 3. Persist metadata ────────────────────────────────────────────────
-  const { data: saveData, error: saveError } = await supabase.functions.invoke(
-    'process-upload',
-    {
-      body: {
-        asset_type:        assetType,
-        public_id:         signData.object_key,
-        storage_bucket:    signData.storage_bucket,
-        content_type:      file.type,
-        bytes:             file.size,
-        file_name:         file.name,
-        related_entity_id: venueId,
-      },
-    },
-  )
-
-  if (saveError || saveData?.error) {
-    console.error('process-upload failed:', saveError, saveData)
-    return {
-      success: false,
-      error:   saveData?.error ?? saveError?.message ?? 'Failed to save upload',
-      stage:   'save',
+      error:   data?.error ?? error?.message ?? 'Upload failed. Please try again.',
+      stage:   'upload',
     }
   }
 
@@ -184,7 +118,8 @@ export async function uploadToR2(
 
   return {
     success:       true,
-    objectKey:     signData.object_key,
-    storageBucket: signData.storage_bucket,
+    objectKey:     data?.object_key,
+    storageBucket: data?.storage_bucket,
+    kycStatus:     data?.kyc_status,
   }
 }
