@@ -6,6 +6,7 @@
 // They live in a private Cloudflare R2 bucket — see uploadToR2.ts.
 //
 // FLOW:
+//   0. client-side size check (not a security boundary — see MAX_BYTES note)
 //   1. cloudinary-sign  → signature + upload params
 //   2. Direct browser upload to Cloudinary
 //   3. process-upload   → persist metadata in Supabase
@@ -66,11 +67,29 @@ export interface UploadError {
   stage:   'sign' | 'upload' | 'save'
 }
 
+// Client-side guard only — the real enforcement is server-side in
+// process-upload, which checks the size Cloudinary reports after upload
+// and deletes+rejects if it's over. This check exists purely so a user
+// gets instant feedback instead of waiting through a multi-MB upload only
+// to have it rejected afterwards. Keep this in sync with process-upload's
+// MAX_BYTES and upload-document's MAX_BYTES — all three are independent
+// constants in separate files/languages, no shared source of truth.
+const MAX_BYTES = 5 * 1024 * 1024 // 5 MiB
+
 // ── Main upload function ─────────────────────────────────────────────────────
 export async function uploadToCloudinary(
   options: UploadOptions
 ): Promise<UploadResult | UploadError> {
   const { file, assetType, mediaType, title, sortOrder = 0, onProgress } = options
+
+  // ── Step 0: Client-side size check ───────────────────────────────────────
+  if (file.size > MAX_BYTES) {
+    return {
+      success: false,
+      error:   `File exceeds the ${Math.round(MAX_BYTES / 1048576)}MB limit`,
+      stage:   'sign',
+    }
+  }
 
   // ── Step 1: Get signature from Edge Function ─────────────────────────────
   // Identity comes from the session JWT — no IDs are sent from the client.
@@ -136,7 +155,7 @@ export async function uploadToCloudinary(
   const format       = (cloudinaryData.format       as string) ?? null
   const bytes        = cloudinaryData.bytes         as number
   const width        = (cloudinaryData.width        as number) ?? null
-  const height       = (cloudinaryData.height       as number) ?? null
+  const height        = (cloudinaryData.height        as number) ?? null
 
   // ── Step 3: Save metadata to Supabase via process-upload ────────────────
   const processBody: Record<string, unknown> = {
