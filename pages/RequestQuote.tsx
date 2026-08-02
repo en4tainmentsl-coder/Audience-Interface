@@ -1,10 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router';
-import { ARTISTS } from '../constants';
 import { Button } from '../components/Button';
 import { supabase } from '../services/supabase';
 import { CheckCircle, Music, MapPin, Calendar, Clock, AlertCircle } from 'lucide-react';
-import { Artist } from '../types';
+
+interface TalentOption {
+  id: string;
+  stage_name: string;
+}
+
+// Mirrors the live `events_type` Postgres enum. Keep in sync manually if
+// the enum is ever altered — there is no runtime introspection of it here.
+const EVENT_TYPES: { value: string; label: string }[] = [
+  { value: 'wedding', label: 'Wedding' },
+  { value: 'corporate', label: 'Corporate' },
+  { value: 'birthday', label: 'Birthday' },
+  { value: 'concert', label: 'Concert' },
+  { value: 'private', label: 'Private Event' },
+  { value: 'dinner_service', label: 'Dinner Service' },
+  { value: 'lunch_service', label: 'Lunch Service' },
+  { value: 'other', label: 'Other' },
+];
 
 interface QuoteFormData {
   name: string;
@@ -13,13 +29,14 @@ interface QuoteFormData {
   date: string;
   time: string;
   location: string;
-  artistId: string;
+  talentId: string;
+  eventType: string;
   notes: string;
 }
 
 export const RequestQuote: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const preSelectedArtistId: string | null = searchParams.get('artistId');
+  const preSelectedTalentId: string | null = searchParams.get('artistId');
 
   const [formData, setFormData] = useState<QuoteFormData>({
     name: '',
@@ -28,19 +45,58 @@ export const RequestQuote: React.FC = () => {
     date: '',
     time: '',
     location: '',
-    artistId: preSelectedArtistId || '',
+    talentId: preSelectedTalentId || '',
+    eventType: '',
     notes: ''
   });
+
+  const [talentOptions, setTalentOptions] = useState<TalentOption[]>([]);
+  const [talentLoading, setTalentLoading] = useState<boolean>(true);
+
+  const [authChecked, setAuthChecked] = useState<boolean>(false);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Auth gate — login is required to submit a quote request.
   useEffect(() => {
-    if (preSelectedArtistId) {
-      setFormData(prev => ({ ...prev, artistId: preSelectedArtistId }));
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setIsLoggedIn(!!user);
+      setAuthChecked(true);
+    });
+  }, []);
+
+  // Live talent list — replaces the static ARTISTS constants array.
+  // Only is_public = true rows are visible under RLS to a non-owner reader.
+  useEffect(() => {
+    async function loadTalent() {
+      setTalentLoading(true);
+      const { data, error } = await supabase
+        .from('profiles_talent')
+        .select('id, stage_name')
+        .eq('is_public', true)
+        .order('stage_name');
+
+      if (!error && data) {
+        setTalentOptions(data);
+        // Default-select the first talent if none was pre-selected via query param
+        setFormData(prev => ({
+          ...prev,
+          talentId: prev.talentId || data[0]?.id || ''
+        }));
+      }
+      setTalentLoading(false);
     }
-  }, [preSelectedArtistId]);
+    loadTalent();
+  }, []);
+
+  useEffect(() => {
+    if (preSelectedTalentId) {
+      setFormData(prev => ({ ...prev, talentId: preSelectedTalentId }));
+    }
+  }, [preSelectedTalentId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>): void => {
     const { name, value } = e.target;
@@ -49,16 +105,34 @@ export const RequestQuote: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
+
+    if (!formData.talentId) {
+      setErrorMessage("Please select a talent before submitting.");
+      return;
+    }
+
+    if (!formData.eventType) {
+      setErrorMessage("Please select an event type before submitting.");
+      return;
+    }
+
     setLoading(true);
     setErrorMessage(null);
-    
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
+      if (!user) {
+        setLoading(false);
+        setErrorMessage("Your session has expired. Please sign in again to submit a quote request.");
+        setIsLoggedIn(false);
+        return;
+      }
+
       const { error } = await supabase.from('quote_requests').insert({
-        client_user_id: user?.id || null,
-        preferred_talent_id: formData.artistId || null,
-        event_type: 'general',   // verify against the actual enum values first — see below
+        client_user_id: user.id,
+        talent_id: formData.talentId,
+        event_type: formData.eventType,
         event_date: formData.date,
         start_time: formData.time,
         duration_hours: 2,
@@ -87,10 +161,28 @@ export const RequestQuote: React.FC = () => {
           </div>
           <h1 className="text-4xl font-black text-white mb-4 uppercase italic">Success!</h1>
           <p className="text-gray-400 text-lg mb-10">
-            Your quotation request has been sent to our talent team. We'll get back to you within 24 hours with a custom proposal.
+            Your quotation request has been sent directly to the talent you selected. You'll be notified as soon as they respond.
           </p>
           <Link to="/">
             <Button variant="primary" size="lg" className="w-full">Back to Home</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Auth gate: don't render the form (or let anyone fill it out) until we
+  // know there's a valid session. Avoids a confusing failure at submit time.
+  if (authChecked && !isLoggedIn) {
+    return (
+      <div className="pt-32 pb-20 min-h-screen bg-brand-dark flex items-center justify-center px-4" id="request-quote-auth-gate">
+        <div className="max-w-md w-full text-center bg-brand-surface p-12 rounded-3xl border border-white/10 shadow-2xl">
+          <h1 className="text-3xl font-black text-white mb-4 uppercase italic">Sign In Required</h1>
+          <p className="text-gray-400 text-lg mb-10">
+            Please sign in to request a quote from our talent.
+          </p>
+          <Link to="/login">
+            <Button variant="primary" size="lg" className="w-full">Sign In</Button>
           </Link>
         </div>
       </div>
@@ -106,7 +198,7 @@ export const RequestQuote: React.FC = () => {
             <Music className="w-16 h-16 mb-10 text-brand-lime animate-pulse" />
             <h2 className="text-5xl font-black mb-6 uppercase tracking-tighter italic">Book the Future.</h2>
             <p className="text-white/80 text-lg leading-relaxed mb-8">
-              Tell us your vision, and we'll match it with the perfect talent from our curated roster.
+              Tell us your vision, and send your request directly to the talent you want.
             </p>
             <ul className="space-y-6">
               <li className="flex items-center gap-4 text-white/90 font-bold uppercase tracking-widest text-sm">
@@ -135,7 +227,7 @@ export const RequestQuote: React.FC = () => {
         <div className="lg:w-3/5 p-10 md:p-14 bg-brand-surface text-left">
           <div className="mb-10">
             <h1 className="text-3xl font-black text-white mb-2 uppercase italic">Get a Quote</h1>
-            <p className="text-gray-400">Fill out the details below to receive a personalized booking summary.</p>
+            <p className="text-gray-400">Fill out the details below to send a request directly to your chosen talent.</p>
           </div>
 
           {errorMessage && (
@@ -226,16 +318,37 @@ export const RequestQuote: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-black text-brand-lime uppercase tracking-widest">Select Talent</label>
+              <label className="text-xs font-black text-brand-lime uppercase tracking-widest">Event Type</label>
               <select
-                name="artistId"
-                value={formData.artistId}
+                name="eventType"
+                required
+                value={formData.eventType}
                 onChange={handleChange}
                 className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all appearance-none cursor-pointer"
               >
-                <option value="">I'm not sure yet...</option>
-                {ARTISTS.map((artist: Artist) => (
-                  <option key={artist.id} value={artist.id}>{artist.name} — {artist.category}</option>
+                <option value="">Select an event type...</option>
+                {EVENT_TYPES.map((et) => (
+                  <option key={et.value} value={et.value}>{et.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-black text-brand-lime uppercase tracking-widest">Select Talent</label>
+              <select
+                name="talentId"
+                required
+                value={formData.talentId}
+                onChange={handleChange}
+                disabled={talentLoading || talentOptions.length === 0}
+                className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all appearance-none cursor-pointer disabled:opacity-50"
+              >
+                {talentLoading && <option value="">Loading talent...</option>}
+                {!talentLoading && talentOptions.length === 0 && (
+                  <option value="">No talent currently available</option>
+                )}
+                {talentOptions.map((talent) => (
+                  <option key={talent.id} value={talent.id}>{talent.stage_name}</option>
                 ))}
               </select>
             </div>
@@ -257,7 +370,7 @@ export const RequestQuote: React.FC = () => {
                 type="submit" 
                 variant="primary" 
                 className="w-full py-5 text-lg"
-                disabled={loading}
+                disabled={loading || talentLoading || !formData.talentId || !formData.eventType}
               >
                 {loading ? 'Processing...' : 'Submit Quote Request'}
               </Button>
