@@ -14,7 +14,6 @@ import { VenuePortal } from './pages/VenuePortal';
 import { VenueDashboard } from './pages/VenueDashboard';
 import { TalentDashboard } from './pages/TalentDashboard';
 import { ClientDashboard } from './pages/ClientDashboard';
-import { MusicAssistant } from './components/MusicAssistant';
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -48,7 +47,6 @@ const App = () => {
           </Routes>
         </main>
         <Footer />
-        <MusicAssistant />
       </div>
     </Router>
   );
