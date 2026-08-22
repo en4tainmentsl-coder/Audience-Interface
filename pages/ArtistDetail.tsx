@@ -90,7 +90,6 @@ export const ArtistDetail: React.FC = () => {
             } else {
         setArtist(null);
       } 
-    }
 
       // Fetch Reviews from reviews_star
       const { data: reviewsData } = await supabase
