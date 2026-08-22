@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router';
 import { FlexArtistCardRow } from '../components/FlexArtistCard';
-import { ARTISTS as STATIC_ARTISTS } from '../constants';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { Artist } from '../types';
@@ -12,7 +11,7 @@ export const Artists: React.FC = () => {
   
   const [searchTerm, setSearchTerm] = useState<string>(urlQuery);
   const [selectedCategory, setSelectedCategory] = useState<string>('All Categories');
-  const [artists, setArtists] = useState<Artist[]>(STATIC_ARTISTS);
+  const [artists, setArtists] = useState<Artist[]>([]);
 
   const fetchArtists = async (): Promise<void> => {
     try {
@@ -69,11 +68,11 @@ export const Artists: React.FC = () => {
         });
         setArtists(mappedArtists);
       } else {
-        setArtists(STATIC_ARTISTS);
+        setArtists([]);
       }
     } catch (error) {
       console.error('Error fetching artists:', error);
-      setArtists(STATIC_ARTISTS);
+      setArtists([]);
     }
   };
 
