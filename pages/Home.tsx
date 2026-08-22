@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import { Button } from '../components/Button';
 import { FlexArtistCardRow } from '../components/FlexArtistCard';
-import { ARTISTS as STATIC_ARTISTS, RECENT_PERFORMANCES } from '../constants';
+import { RECENT_PERFORMANCES } from '../constants';
 import { Play, Sparkles, Star, Calendar } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { Artist, RecentPerformance } from '../types';
 
 export const Home: React.FC = () => {
-  const [featuredArtists, setFeaturedArtists] = useState<Artist[]>(STATIC_ARTISTS.slice(0, 3));
+  const [featuredArtists, setFeaturedArtists] = useState<Artist[]>([]);
 
   const fetchFeaturedArtists = async (): Promise<void> => {
     try {
