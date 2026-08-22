@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router';
-import { ARTISTS as STATIC_ARTISTS } from '../constants';
 import { Button } from '../components/Button';
 import { StarRating } from '../components/StarRating';
 import { PlayCircle, Heart, LogIn, AlertCircle, CheckCircle } from 'lucide-react';
@@ -88,23 +87,9 @@ export const ArtistDetail: React.FC = () => {
             m.pfp_1_url, m.pfp_2_url, m.pfp_3_url
           ].filter(Boolean)) || []
         });
-      } else {
-        const found = STATIC_ARTISTS.find(a => a.id === id);
-        if (found) {
-          setArtist({
-            id: found.id,
-            name: found.name,
-            imageUrl: found.imageUrl,
-            description: found.description,
-            bio: found.bio,
-            category: found.category,
-            rating: found.rating,
-            gallery: found.gallery
-          });
-        } else {
-          setArtist(null);
-        }
-      }
+            } else {
+        setArtist(null);
+      } 
 
       // Fetch Reviews from reviews_star
       const { data: reviewsData } = await supabase
