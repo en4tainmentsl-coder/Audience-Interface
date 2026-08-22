@@ -1,0 +1,20 @@
+-- Applied via Supabase SQL Editor 2026-08-22.
+--
+-- Replaces (event_date, start_time, duration_hours) on quote_requests and
+-- (event_date, start_time, end_time) on bookings with explicit timestamptz
+-- ranges.
+--
+-- Reason: a 21:00-01:00 gig cannot be expressed as date + time + duration
+-- without wrap logic at every read site, and most live entertainment
+-- bookings cross midnight. With a range, duration is plain subtraction,
+-- overlap and availability checks are native, and midnight is a non-event.
+--
+-- duration_hours retained as GENERATED ALWAYS so it can never drift from
+-- the range. Drives the 4-hour floor and proportional scaling above it.
+--
+-- NOTE: timestamptz stores UTC. Render in Asia/Colombo. Any ::date cast
+-- must apply AT TIME ZONE 'Asia/Colombo' first, or a 21:00 Colombo event
+-- reports as the following day.
+--
+-- Safe to drop columns: zero rows in all application tables, and no
+-- function, policy or view referenced them.
