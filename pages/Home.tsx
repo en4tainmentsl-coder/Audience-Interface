@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import { Button } from '../components/Button';
 import { FlexArtistCardRow } from '../components/FlexArtistCard';
-import { RECENT_PERFORMANCES } from '../constants';
+
 import { Play, Sparkles, Star, Calendar } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { Artist, RecentPerformance } from '../types';
@@ -138,53 +138,6 @@ export const Home: React.FC = () => {
           </div>
           
           <FlexArtistCardRow artists={featuredArtists} featuredIds={featuredIds} />
-        </div>
-      </section>
-
-      <section className="py-32 bg-brand-surface relative overflow-hidden text-left" id="live-stage-section">
-        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-brand-purple via-brand-pink to-brand-lime" />
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-20">
-            <h2 className="text-5xl font-black text-white mb-4 uppercase tracking-tighter">Live & Loud</h2>
-            <p className="text-gray-400 max-w-2xl mx-auto">Witness the energy. Experience the sound. Recent highlights from En4tainment stages.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {RECENT_PERFORMANCES.map((perf: RecentPerformance) => (
-              <div key={perf.id} className="group relative rounded-2xl overflow-hidden aspect-[4/5] shadow-2xl cursor-pointer" id={`recent-performance-${perf.id}`}>
-                <img 
-                  src={perf.imageUrl} 
-                  alt={perf.venue} 
-                  className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 filter brightness-75 group-hover:brightness-100" 
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-brand-dark via-brand-dark/20 to-transparent" />
-                
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                  <div className="w-20 h-20 rounded-full bg-brand-lime flex items-center justify-center pl-1 shadow-2xl shadow-brand-lime/30 transform scale-50 group-hover:scale-100 transition-transform duration-500">
-                    <Play fill="#0f0518" className="text-brand-dark" size={32} />
-                  </div>
-                </div>
-
-                <div className="absolute bottom-0 left-0 right-0 p-8 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Calendar size={14} className="text-brand-lime" />
-                    <span className="text-brand-lime text-xs font-bold uppercase tracking-widest">
-                      {new Date(perf.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </span>
-                  </div>
-                  <h4 className="text-2xl font-black text-white mb-1 group-hover:text-brand-pink transition-colors">{perf.artistName}</h4>
-                  <p className="text-gray-300 text-sm italic">Live at {perf.venue}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          <div className="mt-20 text-center">
-             <Link to="/artists" id="rate-performance-home">
-              <Button variant="secondary" size="lg">Rate a Performance</Button>
-             </Link>
-          </div>
         </div>
       </section>
 
