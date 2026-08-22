@@ -1,5 +1,6 @@
 import React from 'react';
-import { Facebook, Instagram, Mail, ShieldCheck, Youtube } from 'lucide-react';
+import { Mail, ShieldCheck } from 'lucide-react';
+import { FacebookIcon, InstagramIcon, YoutubeIcon } from './SocialIcons';
 import { Link } from 'react-router';
 import { LOGO_URL, SOCIAL_LINKS } from '../constants';
 
@@ -54,7 +55,7 @@ export const Footer: React.FC = () => {
                 aria-label="Facebook"
                 className="bg-white/5 p-3 rounded-full hover:bg-brand-purple hover:text-white transition-all text-gray-400"
               >
-                <Facebook size={20} />
+                <Facebook size={20} />    →    <FacebookIcon size={20} />
               </a>
               <a 
                 href={SOCIAL_LINKS.instagram} 
@@ -63,7 +64,7 @@ export const Footer: React.FC = () => {
                 aria-label="Instagram"
                 className="bg-white/5 p-3 rounded-full hover:bg-brand-pink hover:text-white transition-all text-gray-400"
               >
-                <Instagram size={20} />
+                <Instagram size={20} />   →    <InstagramIcon size={20} />
               </a>
               <a 
                 href={SOCIAL_LINKS.youtube} 
@@ -72,7 +73,7 @@ export const Footer: React.FC = () => {
                 aria-label="YouTube"
                 className="bg-white/5 p-3 rounded-full hover:bg-brand-lime hover:text-brand-dark transition-all text-gray-400"
               >
-                <Youtube size={20} />
+                <Youtube size={20} />     →    <YoutubeIcon size={20} />
               </a>
             </div>
             
