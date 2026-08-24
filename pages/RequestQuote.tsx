@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router';
 import { Button } from '../components/Button';
 import { supabase } from '../services/supabase';
+import { DISTRICTS, findDistrict } from '../constants/districts';
 import { CheckCircle, Music, MapPin, Calendar, Clock, AlertCircle } from 'lucide-react';
 
 interface TalentOption {
@@ -9,8 +10,17 @@ interface TalentOption {
   stage_name: string;
 }
 
-// Mirrors the live `events_type` Postgres enum. Keep in sync manually if
-// the enum is ever altered — there is no runtime introspection of it here.
+interface VenueOption {
+  id: string;
+  name_of_venue: string;
+  address_city: string;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+// Mirrors the live `events_type` Postgres enum. Verified against the live DB
+// 2026-08-24 — exact match. Keep in sync manually if the enum is ever altered;
+// there is no runtime introspection of it here.
 const EVENT_TYPES: { value: string; label: string }[] = [
   { value: 'wedding', label: 'Wedding' },
   { value: 'corporate', label: 'Corporate' },
@@ -22,17 +32,34 @@ const EVENT_TYPES: { value: string; label: string }[] = [
   { value: 'other', label: 'Other' },
 ];
 
+// Sri Lanka is UTC+05:30 year-round and observes no DST, so a fixed offset is
+// correct and avoids the browser-timezone bug: constructing `new Date(date+time)`
+// interprets the input in the *viewer's* zone, which would place an event booked
+// from London 5.5 hours off the intended local time.
+const LK_UTC_OFFSET = '+05:30';
+
 interface QuoteFormData {
   name: string;
   email: string;
   phone: string;
   date: string;
-  time: string;
+  startTime: string;
+  endTime: string;
   location: string;
+  districtCode: string;
+  venueId: string;
   talentId: string;
   eventType: string;
   notes: string;
 }
+
+// Advance a YYYY-MM-DD string by one day. Deliberately uses UTC arithmetic on a
+// date-only value so the result cannot drift across a local midnight boundary.
+const addOneDay = (isoDate: string): string => {
+  const dt = new Date(`${isoDate}T00:00:00Z`);
+  dt.setUTCDate(dt.getUTCDate() + 1);
+  return dt.toISOString().slice(0, 10);
+};
 
 export const RequestQuote: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -43,8 +70,11 @@ export const RequestQuote: React.FC = () => {
     email: '',
     phone: '',
     date: '',
-    time: '',
+    startTime: '',
+    endTime: '',
     location: '',
+    districtCode: '',
+    venueId: '',
     talentId: preSelectedTalentId || '',
     eventType: '',
     notes: ''
@@ -52,6 +82,8 @@ export const RequestQuote: React.FC = () => {
 
   const [talentOptions, setTalentOptions] = useState<TalentOption[]>([]);
   const [talentLoading, setTalentLoading] = useState<boolean>(true);
+
+  const [venueOptions, setVenueOptions] = useState<VenueOption[]>([]);
 
   const [authChecked, setAuthChecked] = useState<boolean>(false);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
@@ -68,8 +100,8 @@ export const RequestQuote: React.FC = () => {
     });
   }, []);
 
-  // Live talent list — replaces the static ARTISTS constants array.
-  // Only is_public = true rows are visible under RLS to a non-owner reader.
+  // Live talent list. Only is_public = true rows are visible under RLS to a
+  // non-owner reader.
   useEffect(() => {
     async function loadTalent() {
       setTalentLoading(true);
@@ -81,7 +113,6 @@ export const RequestQuote: React.FC = () => {
 
       if (!error && data) {
         setTalentOptions(data);
-        // Default-select the first talent if none was pre-selected via query param
         setFormData(prev => ({
           ...prev,
           talentId: prev.talentId || data[0]?.id || ''
@@ -90,6 +121,22 @@ export const RequestQuote: React.FC = () => {
       setTalentLoading(false);
     }
     loadTalent();
+  }, []);
+
+  // Approved venues, for events held at a listed venue. Expected to return zero
+  // rows until venues are onboarded — the picker then simply renders as
+  // "Not at a listed venue" and the district selection carries the location.
+  useEffect(() => {
+    async function loadVenues() {
+      const { data, error } = await supabase
+        .from('profiles_venues')
+        .select('id, name_of_venue, address_city, latitude, longitude')
+        .eq('approval_status', 'approved')
+        .order('name_of_venue');
+
+      if (!error && data) setVenueOptions(data as VenueOption[]);
+    }
+    loadVenues();
   }, []);
 
   useEffect(() => {
@@ -116,6 +163,16 @@ export const RequestQuote: React.FC = () => {
       return;
     }
 
+    if (!formData.districtCode) {
+      setErrorMessage("Please select the district where the event will take place.");
+      return;
+    }
+
+    if (!formData.date || !formData.startTime || !formData.endTime) {
+      setErrorMessage("Please provide the event date, start time and end time.");
+      return;
+    }
+
     setLoading(true);
     setErrorMessage(null);
 
@@ -129,14 +186,42 @@ export const RequestQuote: React.FC = () => {
         return;
       }
 
+      // `starts_at` / `ends_at` are timestamptz and NOT NULL. `duration_hours`
+      // is a GENERATED column — writing to it raises an error, so it is omitted.
+      // An end time at or before the start time means the event runs past
+      // midnight (an 8pm–1am wedding), so the end date rolls forward a day.
+      const endsOnNextDay = formData.endTime <= formData.startTime;
+      const endDate = endsOnNextDay ? addOneDay(formData.date) : formData.date;
+
+      const startsAt = `${formData.date}T${formData.startTime}:00${LK_UTC_OFFSET}`;
+      const endsAt = `${endDate}T${formData.endTime}:00${LK_UTC_OFFSET}`;
+
+      // Satisfies quote_requests_has_location. District centroid is always
+      // written as the floor; a selected venue's own coordinates override it
+      // when present. Note venue lat/lng are nullable, so venue_id alone would
+      // satisfy the CHECK while leaving distance_km with nothing to compute —
+      // hence the district value is never omitted.
+      const district = findDistrict(formData.districtCode);
+      const venue = venueOptions.find(v => v.id === formData.venueId);
+
+      let eventLatitude: number | null = district?.latitude ?? null;
+      let eventLongitude: number | null = district?.longitude ?? null;
+
+      if (venue && venue.latitude !== null && venue.longitude !== null) {
+        eventLatitude = Number(venue.latitude);
+        eventLongitude = Number(venue.longitude);
+      }
+
       const { error } = await supabase.from('quote_requests').insert({
         client_user_id: user.id,
         talent_id: formData.talentId,
         event_type: formData.eventType,
-        event_date: formData.date,
-        start_time: formData.time,
-        duration_hours: 2,
+        starts_at: startsAt,
+        ends_at: endsAt,
+        venue_id: formData.venueId || null,
         location: formData.location,
+        event_latitude: eventLatitude,
+        event_longitude: eventLongitude,
         special_requirements: formData.notes,
         status: 'open'
       });
@@ -192,7 +277,7 @@ export const RequestQuote: React.FC = () => {
   return (
     <div className="pt-32 pb-20 min-h-screen bg-brand-dark flex items-center justify-center px-4" id="request-quote-page">
       <div className="max-w-5xl w-full bg-brand-surface border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col lg:flex-row">
-        
+
         <div className="lg:w-2/5 bg-gradient-to-br from-brand-purple via-brand-pink to-brand-indigo p-12 text-white flex flex-col justify-between relative overflow-hidden text-left animate-fade-in">
           <div className="relative z-10">
             <Music className="w-16 h-16 mb-10 text-brand-lime animate-pulse" />
@@ -203,7 +288,7 @@ export const RequestQuote: React.FC = () => {
             <ul className="space-y-6">
               <li className="flex items-center gap-4 text-white/90 font-bold uppercase tracking-widest text-sm">
                 <div className="bg-white/20 p-2 rounded-lg"><MapPin size={18} /></div>
-                Global Venues
+                Island-wide Coverage
               </li>
               <li className="flex items-center gap-4 text-white/90 font-bold uppercase tracking-widest text-sm">
                 <div className="bg-white/20 p-2 rounded-lg"><Calendar size={18} /></div>
@@ -215,7 +300,7 @@ export const RequestQuote: React.FC = () => {
               </li>
             </ul>
           </div>
-          
+
           <div className="absolute -bottom-20 -right-20 opacity-20 transform rotate-12">
             <svg width="400" height="400" viewBox="0 0 100 100">
                <path d="M10,90 L50,10 L90,90 Z" fill="none" stroke="currentColor" strokeWidth="2" />
@@ -236,8 +321,11 @@ export const RequestQuote: React.FC = () => {
               <p className="text-sm">{errorMessage}</p>
             </div>
           )}
-          
+
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* NOTE: name / email / phone are collected but not persisted —
+                quote_requests has no such columns. Either wire them to
+                profiles_clients or remove the fields. Tracked separately. */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-xs font-black text-brand-lime uppercase tracking-widest">Full Name</label>
@@ -279,20 +367,54 @@ export const RequestQuote: React.FC = () => {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-black text-brand-lime uppercase tracking-widest">Venue / Location</label>
-                <input
-                  type="text"
-                  name="location"
+                <label className="text-xs font-black text-brand-lime uppercase tracking-widest">District</label>
+                <select
+                  name="districtCode"
                   required
-                  value={formData.location}
+                  value={formData.districtCode}
                   onChange={handleChange}
-                  placeholder="Downtown Arena"
-                  className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all placeholder:text-gray-600"
-                />
+                  className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all appearance-none cursor-pointer"
+                >
+                  <option value="">Select a district...</option>
+                  {DISTRICTS.map((d) => (
+                    <option key={d.code} value={d.code}>{d.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-xs font-black text-brand-lime uppercase tracking-widest">Listed Venue (optional)</label>
+              <select
+                name="venueId"
+                value={formData.venueId}
+                onChange={handleChange}
+                disabled={venueOptions.length === 0}
+                className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all appearance-none cursor-pointer disabled:opacity-50"
+              >
+                <option value="">
+                  {venueOptions.length === 0 ? 'No listed venues yet' : 'Not at a listed venue'}
+                </option>
+                {venueOptions.map((v) => (
+                  <option key={v.id} value={v.id}>{v.name_of_venue} — {v.address_city}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-black text-brand-lime uppercase tracking-widest">Venue / Location Details</label>
+              <input
+                type="text"
+                name="location"
+                required
+                value={formData.location}
+                onChange={handleChange}
+                placeholder="Hotel name, hall, or address"
+                className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all placeholder:text-gray-600"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <label className="text-xs font-black text-brand-lime uppercase tracking-widest">Event Date</label>
                 <input
@@ -308,14 +430,31 @@ export const RequestQuote: React.FC = () => {
                 <label className="text-xs font-black text-brand-lime uppercase tracking-widest">Start Time</label>
                 <input
                   type="time"
-                  name="time"
+                  name="startTime"
                   required
-                  value={formData.time}
+                  value={formData.startTime}
+                  onChange={handleChange}
+                  className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-black text-brand-lime uppercase tracking-widest">End Time</label>
+                <input
+                  type="time"
+                  name="endTime"
+                  required
+                  value={formData.endTime}
                   onChange={handleChange}
                   className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all"
                 />
               </div>
             </div>
+
+            {formData.startTime && formData.endTime && formData.endTime <= formData.startTime && (
+              <p className="text-xs text-brand-lime/80 -mt-2">
+                Ends after midnight — the event will be recorded as finishing the following day.
+              </p>
+            )}
 
             <div className="space-y-2">
               <label className="text-xs font-black text-brand-lime uppercase tracking-widest">Event Type</label>
@@ -366,11 +505,11 @@ export const RequestQuote: React.FC = () => {
             </div>
 
             <div className="pt-6">
-              <Button 
-                type="submit" 
-                variant="primary" 
+              <Button
+                type="submit"
+                variant="primary"
                 className="w-full py-5 text-lg"
-                disabled={loading || talentLoading || !formData.talentId || !formData.eventType}
+                disabled={loading || talentLoading || !formData.talentId || !formData.eventType || !formData.districtCode}
               >
                 {loading ? 'Processing...' : 'Submit Quote Request'}
               </Button>
