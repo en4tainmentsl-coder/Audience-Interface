@@ -30,7 +30,7 @@ export const ArtistCard: React.FC<ArtistCardProps> = ({ artist }) => {
           .select('role')
           .eq('id', authUser.id)
           .single();
-        setUserRole(profile?.role);
+        setUserRole(profile?.role ?? null);
         
         // Check Heart status
         const { data: heartData } = await supabase

@@ -29,10 +29,10 @@ interface TalentDashboardBooking {
 interface TalentDashboardQuote {
   id: string;
   event_type: string;
-  event_date: string;
-  profiles_clients?: {
-    full_name: string;
-  };
+  starts_at: string;
+  ends_at: string;
+  location: string | null;
+  status: string | null;
 }
 
 export const TalentDashboard: React.FC = () => {
@@ -66,10 +66,12 @@ export const TalentDashboard: React.FC = () => {
         .select(`
           id,
           event_type,
-          event_date,
-          profiles_clients (full_name)
+          starts_at,
+          ends_at,
+          location,
+          status
         `)
-        .eq('reviewee_talent_id', talentId)
+        .eq('talent_id', talentId)
         .order('created_at', { ascending: false });
       
       setQuotes(((quotesData as unknown) as TalentDashboardQuote[]) || []);
@@ -264,8 +266,10 @@ export const TalentDashboard: React.FC = () => {
                       className="bg-brand-dark/50 border border-white/5 rounded-xl p-4 flex flex-col md:flex-row justify-between gap-4"
                     >
                       <div className="space-y-1">
-                        <h3 className="font-bold text-lg">{quote.profiles_clients?.full_name || 'Anonymous Client'}</h3>
-                        <p className="text-sm text-gray-400">{quote.event_type} — {new Date(quote.event_date).toLocaleDateString()}</p>
+                                                <h3 className="font-bold text-lg">{quote.location || 'Location not specified'}</h3>
+                        <p className="text-sm text-gray-400">
+                          {quote.event_type} — {new Date(quote.starts_at).toLocaleDateString('en-GB', { timeZone: 'Asia/Colombo' })}
+                        </p>
                       </div>
                       <div className="flex items-center gap-3">
                         <Button variant="outline" size="sm">View Request</Button>
