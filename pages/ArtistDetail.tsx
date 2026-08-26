@@ -67,7 +67,7 @@ export const ArtistDetail: React.FC = () => {
           type_of_performer,
           primary_location,
           profile_photo_url,
-          talent_media (cloudinary_secure_url, pfp_1_url, pfp_2_url, pfp_3_url, is_featured, resource_type),
+          talent_media (cloudinary_secure_url, is_featured, resource_type, media_type, sort_order),
           talent_genres (genre_id, is_primary, genres (genre_name))
         `)
         .eq('id', id)
@@ -82,24 +82,30 @@ export const ArtistDetail: React.FC = () => {
         const genres = talentData.talent_genres as unknown as Array<{ is_primary: boolean; genres?: { genre_name: string } }> || [];
 
         const primaryGenre: string = genres.find(g => g.is_primary)?.genres?.genre_name || 'Artist';
+        // The three profile photos are talent_media rows with
+        // media_type 'profile_photo', at sort_order 0, 1 and 2 — written by the
+        // Talent PWA's FEATURE_SLOTS. Slot 0 is the lead image.
+        const profilePhotos: string[] = media
+          .filter(m => m.media_type === 'profile_photo' && m.cloudinary_secure_url)
+          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+          .map(m => m.cloudinary_secure_url as string);
+
         const featuredImage: string =
-          media.find(m => m.is_featured && m.resource_type === 'image')?.cloudinary_secure_url
-          || media[0]?.pfp_1_url
+          profilePhotos[0]
+          || media.find(m => m.is_featured && m.resource_type === 'image')?.cloudinary_secure_url
           || media[0]?.cloudinary_secure_url
           || talentData.profile_photo_url
           || '';
         
         setArtist({
           id: talentData.id,
-          name: talentData.stage_name,
+          name: talentData.stage_name || 'Unnamed artist',
           imageUrl: featuredImage,
           description: talentData.short_bio || '',
           bio: talentData.bio || '',
           category: primaryGenre,
           rating: talentData.rating || 0,
-          gallery: media.flatMap(m => [
-            m.pfp_1_url, m.pfp_2_url, m.pfp_3_url
-          ].filter(Boolean)) || []
+          gallery: profilePhotos
         });
             } else {
         setArtist(null);

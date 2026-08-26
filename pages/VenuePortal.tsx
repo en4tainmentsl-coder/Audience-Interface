@@ -152,7 +152,7 @@ export const VenuePortal: React.FC = () => {
       const { error: userError } = await supabase.from('profiles_users').insert({
         id: authData.user.id,
         email: signupData.email,
-        phone: signupData.mobileNumber,
+        phone: Number(signupData.mobileNumber.replace(/\D/g, '')),
         role: 'venue',
         status: 'active'
       });

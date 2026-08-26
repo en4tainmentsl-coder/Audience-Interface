@@ -280,8 +280,8 @@ if (data) venueProfile = data as unknown as VenueProfile;
         supabase.from('bookings')
           .select('*, profiles_talent(stage_name, profile_photo_url, rating, type_of_performer, mobile, email, is_verified), contracts(id, status, signed_by_talent_at, signed_by_venue_at), payments(id, payment_type, payment_status, gross_amount, paid_at, currency)')
           .eq('venue_id', venueProfile.id)
-          .in('booking_status', ['confirmed', 'in_progress', 'pending'])
-          .order('event_date', { ascending: true }),
+          .in('booking_status', ['confirmed', 'pending'])
+          .order('starts_at', { ascending: true }),
 
         // 4. Past Bookings
         supabase.from('bookings')
@@ -374,7 +374,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
       const { error: quoteError } = await supabase.from('quotes').update({ quote_status: 'accepted' }).eq('id', quoteId);
       if (quoteError) throw quoteError;
 
-      const { error: requestError } = await supabase.from('quote_requests').update({ status: 'quoted' }).eq('id', requestId);
+      const { error: requestError } = await supabase.from('quote_requests').update({ status: 'converted' }).eq('id', requestId);
       if (requestError) throw requestError;
 
       showToast("Quote accepted successfully!");

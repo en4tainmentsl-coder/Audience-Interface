@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { Shield, Eye, Trash2, BrainCircuit, Filter, RefreshCw, Send, AlertCircle } from 'lucide-react';
+import type { Database } from '../database.types';
+
+type QuoteRequestStatus = Database['public']['Enums']['quotation_request_status'];
 
 interface AdminQuoteRequest {
   id: string;
-  status: 'open' | 'quoted' | 'accepted' | 'rejected' | 'expired';
-  event_date: string;
+  status: QuoteRequestStatus;
+  starts_at: string;
+  ends_at: string;
   special_requirements?: string;
   ai_insight?: string;
   profiles_clients?: {
@@ -98,12 +102,15 @@ export const Admin: React.FC = () => {
 
   const filteredBookings: AdminQuoteRequest[] = bookings.filter(b => filter === 'all' || b.status === filter);
 
-  const statusColors = {
-    open: 'bg-brand-pink/20 text-brand-pink',
-    quoted: 'bg-brand-purple/20 text-brand-purple',
-    accepted: 'bg-brand-lime/20 text-brand-lime',
-    rejected: 'bg-gray-500/20 text-gray-400',
-    expired: 'bg-red-500/20 text-red-400',
+  // Keyed by Record<QuoteRequestStatus, string> so a new enum value added in a
+  // migration becomes a compile error here rather than an undefined class name.
+  const statusColors: Record<QuoteRequestStatus, string> = {
+    open:      'bg-brand-pink/20 text-brand-pink',
+    matched:   'bg-brand-purple/20 text-brand-purple',
+    converted: 'bg-brand-lime/20 text-brand-lime',
+    declined:  'bg-gray-500/20 text-gray-400',
+    cancelled: 'bg-gray-500/20 text-gray-400',
+    expired:   'bg-red-500/20 text-red-400',
   };
 
   return (
@@ -177,7 +184,7 @@ export const Admin: React.FC = () => {
                           <div className="text-gray-500 text-xs">{booking.profiles_clients?.email}</div>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-300">
-                          {new Date(booking.event_date).toLocaleDateString()}
+                          {new Date(booking.starts_at).toLocaleDateString('en-GB', { timeZone: 'Asia/Colombo' })}
                         </td>
                         <td className="px-6 py-4">
                           <span className="text-xs font-bold text-brand-lime uppercase">
@@ -243,11 +250,11 @@ export const Admin: React.FC = () => {
                     </p>
                     <div className="flex gap-2">
                        <button 
-                        onClick={() => handleStatusChange(selectedBooking.id, 'quoted')}
+                        onClick={() => handleStatusChange(selectedBooking.id, 'matched')}
                         className="flex-grow bg-brand-purple text-white text-[10px] font-black uppercase py-2 rounded-lg hover:bg-brand-indigo transition-colors flex items-center justify-center gap-2"
                         id="mark-quoted-btn"
                        >
-                         <Send size={12} /> Mark as Quoted
+                         <Send size={12} /> Mark as Matched
                        </button>
                     </div>
                   </div>

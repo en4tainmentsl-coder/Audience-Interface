@@ -45,7 +45,7 @@ export const FlexArtistCard: React.FC<FlexArtistCardProps> = ({ artist, featured
           .select('role')
           .eq('id', authUser.id)
           .single();
-        setUserRole(profile?.role);
+        setUserRole(profile?.role ?? null);
 
         const { data: heartData } = await supabase
           .from('talent_favourites')

@@ -4,10 +4,13 @@ import { Button } from '../components/Button';
 import { supabase } from '../services/supabase';
 import { DISTRICTS, findDistrict } from '../constants/districts';
 import { CheckCircle, Music, MapPin, Calendar, Clock, AlertCircle } from 'lucide-react';
+import type { Database } from '../database.types';
+
+type EventType = Database['public']['Enums']['events_type'];
 
 interface TalentOption {
   id: string;
-  stage_name: string;
+  stage_name: string | null;
 }
 
 interface VenueOption {
@@ -21,7 +24,7 @@ interface VenueOption {
 // Mirrors the live `events_type` Postgres enum. Verified against the live DB
 // 2026-08-24 — exact match. Keep in sync manually if the enum is ever altered;
 // there is no runtime introspection of it here.
-const EVENT_TYPES: { value: string; label: string }[] = [
+const EVENT_TYPES: { value: EventType; label: string }[] = [
   { value: 'wedding', label: 'Wedding' },
   { value: 'corporate', label: 'Corporate' },
   { value: 'birthday', label: 'Birthday' },
@@ -49,7 +52,7 @@ interface QuoteFormData {
   districtCode: string;
   venueId: string;
   talentId: string;
-  eventType: string;
+  eventType: EventType | '';
   notes: string;
 }
 
@@ -487,7 +490,7 @@ export const RequestQuote: React.FC = () => {
                   <option value="">No talent currently available</option>
                 )}
                 {talentOptions.map((talent) => (
-                  <option key={talent.id} value={talent.id}>{talent.stage_name}</option>
+                                    <option key={talent.id} value={talent.id}>{talent.stage_name || 'Unnamed artist'}</option>
                 ))}
               </select>
             </div>
