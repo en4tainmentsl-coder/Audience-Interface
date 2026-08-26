@@ -12,7 +12,7 @@
 //   3. process-upload   → persist metadata in Supabase
 //
 // USAGE:
-//   import { uploadToCloudinary } from 'services/uploadToCloudinary'
+//   import { uploadToCloudinary } from './uploadToCloudinary'
 //
 //   const result = await uploadToCloudinary({
 //     file:      selectedFile,
@@ -22,7 +22,7 @@
 //   if (result.success) console.log(result.secureUrl)
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { supabase } from 'services/supabase.ts'
+import { supabase } from './supabase'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

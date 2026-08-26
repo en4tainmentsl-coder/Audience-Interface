@@ -17,8 +17,8 @@
 //   })
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { supabase } from 'services/supabase.ts'
-import type { AssetType } from 'services/uploadToCloudinary'
+import { supabase } from './supabase'
+import type { AssetType } from './uploadToCloudinary'
 
 export interface DeleteOptions {
   publicId:  string

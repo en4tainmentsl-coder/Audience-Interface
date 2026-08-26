@@ -21,7 +21,7 @@
 // identity document is worse than a visible error.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { supabase } from 'services/supabase.ts'
+import { supabase } from './supabase'
 
 // ── Types ────────────────────────────────────────────────────────────────
 

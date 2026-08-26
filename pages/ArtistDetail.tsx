@@ -6,6 +6,19 @@ import { PlayCircle, Heart, LogIn, AlertCircle, CheckCircle } from 'lucide-react
 import { supabase } from '../services/supabase';
 import { User } from '@supabase/supabase-js';
 
+// Stable per-browser identifier for anonymous hearts. Module scope deliberately:
+// it is used by both the initial fetch and the heart handler, which are separate
+// closures. Defining it inside the fetch left the handler referencing an
+// out-of-scope name — a runtime ReferenceError on every anonymous heart.
+const getVisitorId = (): string => {
+  let vid = localStorage.getItem('en4_visitor_id');
+  if (!vid) {
+    vid = crypto.randomUUID();
+    localStorage.setItem('en4_visitor_id', vid);
+  }
+  return vid;
+};
+
 interface ArtistDetailData {
   id: string;
   name: string;
@@ -53,6 +66,7 @@ export const ArtistDetail: React.FC = () => {
           is_public,
           type_of_performer,
           primary_location,
+          profile_photo_url,
           talent_media (cloudinary_secure_url, pfp_1_url, pfp_2_url, pfp_3_url, is_featured, resource_type),
           talent_genres (genre_id, is_primary, genres (genre_name))
         `)
@@ -102,15 +116,6 @@ export const ArtistDetail: React.FC = () => {
         setReviews((reviewsData as unknown) as ReviewStar[]);
       }
 
-      const getVisitorId = (): string => {
-        let vid = localStorage.getItem('en4_visitor_id');
-        if (!vid) {
-          vid = crypto.randomUUID();
-          localStorage.setItem('en4_visitor_id', vid);
-        }
-        return vid;
-      };
-      
       // Check Heart if user is logged in
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (authUser) {
