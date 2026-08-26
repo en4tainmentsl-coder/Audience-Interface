@@ -3106,7 +3106,7 @@ export type Database = {
           email: string
           id: string
           last_login_at: string | null
-          phone: number
+          phone: string
           role: string
           status: Database["public"]["Enums"]["user_status"]
         }
@@ -3116,7 +3116,7 @@ export type Database = {
           email?: string
           id: string
           last_login_at?: string | null
-          phone: number
+          phone: string
           role?: string
           status?: Database["public"]["Enums"]["user_status"]
         }
@@ -3126,7 +3126,7 @@ export type Database = {
           email?: string
           id?: string
           last_login_at?: string | null
-          phone?: number
+          phone?: string
           role?: string
           status?: Database["public"]["Enums"]["user_status"]
         }
