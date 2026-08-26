@@ -7,6 +7,7 @@ export interface Artist {
   description: string;
   bio: string;
   gallery: string[];
+  is_featured?: boolean;
 }
 
 export interface RecentPerformance {
