@@ -7,6 +7,21 @@ import {
 } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { Button } from '../components/Button';
+import type { Database } from '../database.types';
+
+// bookings.starts_at / ends_at and quote_requests.starts_at are timestamptz.
+// Without an explicit timeZone these render in the *viewer's* zone, so an
+// 8pm–1am wedding shows the wrong date for a client browsing from abroad.
+const LK_TZ = 'Asia/Colombo';
+
+const lkDate = (iso: string, opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' }): string =>
+  new Date(iso).toLocaleDateString('en-GB', { timeZone: LK_TZ, ...opts });
+
+const lkTime = (iso: string): string =>
+  new Date(iso).toLocaleTimeString('en-GB', { timeZone: LK_TZ, hour: '2-digit', minute: '2-digit' });
+
+type BookingRow = Database['public']['Tables']['bookings']['Row'];
+type QuoteRequestRow = Database['public']['Tables']['quote_requests']['Row'];
 
 // --- Types & Interfaces ---
 
@@ -62,17 +77,7 @@ interface BookingQuote {
   };
 }
 
-interface QuoteRequest {
-  id: string;
-  event_type: string;
-  event_date: string;
-  start_time: string;
-  duration_hours: number;
-  budget_min: number;
-  budget_max: number;
-  currency?: string;
-  status: string;
-  special_requirements?: string;
+interface QuoteRequest extends QuoteRequestRow {
   quotes?: BookingQuote[];
 }
 
@@ -85,16 +90,7 @@ interface BookingPayment {
   currency?: string;
 }
 
-interface UpcomingBooking {
-  id: string;
-  event_date: string;
-  start_time: string;
-  end_time?: string;
-  booking_status: string;
-  agreed_gross_amount: number;
-  currency: string;
-  message_to_talent?: string;
-  location?: string;
+interface UpcomingBooking extends BookingRow {
   profiles_talent?: {
     user_id?: string;
     stage_name: string;
@@ -114,12 +110,7 @@ interface UpcomingBooking {
   payments?: BookingPayment[];
 }
 
-interface PastBooking {
-  id: string;
-  event_date: string;
-  booking_status: string;
-  agreed_gross_amount: number;
-  currency: string;
+interface PastBooking extends BookingRow {
   profiles_talent?: {
     stage_name: string;
     profile_photo_url?: string;
@@ -132,12 +123,9 @@ interface PastBooking {
   }>;
 }
 
-interface NotificationItem {
-  id: string;
-  message_preview: string;
-  send_at: string;
-  is_read?: boolean;
-}
+// Derived from the live schema rather than hand-listed: the column is sent_at,
+// not send_at, and both message_preview and sent_at are nullable.
+type NotificationItem = Database['public']['Tables']['notifications']['Row'];
 
 interface MessageItem {
   id?: string;
@@ -155,15 +143,17 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   const getStyles = (): string => {
     switch (status) {
       case 'open': return 'bg-brand-lime text-brand-dark';
-      case 'quoted': return 'bg-brand-purple text-white';
       case 'confirmed': return 'bg-brand-lime text-brand-dark';
       case 'pending': return 'bg-amber-500 text-white';
-      case 'in_progress': return 'bg-brand-purple text-white animate-pulse';
       case 'completed': return 'bg-gray-600 text-white';
       case 'cancelled': return 'bg-brand-pink text-white';
       case 'accepted': return 'bg-brand-lime text-brand-dark';
-      case 'sent': return 'bg-brand-purple text-white';
       case 'rejected': return 'bg-red-500 text-white';
+      case 'matched': return 'bg-brand-purple text-white';
+      case 'converted': return 'bg-brand-lime text-brand-dark';
+      case 'countered': return 'bg-brand-purple text-white';
+      case 'declined': return 'bg-brand-pink text-white';
+      case 'expired': return 'bg-gray-700 text-gray-400';
       default: return 'bg-gray-700 text-gray-300';
     }
   };
@@ -288,7 +278,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
           .select('*, profiles_talent(stage_name, profile_photo_url, rating), reviews_star(rating, overall_rating, comment, created_at)')
           .eq('venue_id', venueProfile.id)
           .eq('booking_status', 'completed')
-          .order('event_date', { ascending: false })
+          .order('starts_at', { ascending: false })
           .limit(10),
 
         // 5. Notifications
@@ -296,7 +286,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
           .select('*')
           .eq('user_id', authUser.id)
           .eq('is_read', false)
-          .order('send_at', { ascending: false })
+          .order('sent_at', { ascending: false })
           .limit(20),
 
         // 6. Unread Messages
@@ -469,12 +459,12 @@ if (data) venueProfile = data as unknown as VenueProfile;
   // --- Calculations ---
 
   const stats = {
-    activeBookings: upcomingBookings.filter(b => ['confirmed', 'in_progress'].includes(b.booking_status)).length,
+    activeBookings: upcomingBookings.filter(b => ['confirmed', 'pending'].includes(b.booking_status)).length,
     pendingQuotes: quoteRequests.filter(r => r.status === 'open').length + 
-                   quoteRequests.flatMap(r => r.quotes || []).filter(q => q.quote_status === 'sent').length,
+                   quoteRequests.flatMap(r => r.quotes || []).filter(q => q.quote_status === 'pending').length,
     unreadMessages: unreadMessages.length,
     nextPerformance: upcomingBookings.find(b => b.booking_status === 'confirmed') 
-      ? `${new Date(upcomingBookings.find(b => b.booking_status === 'confirmed')!.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} @ ${upcomingBookings.find(b => b.booking_status === 'confirmed')!.start_time}`
+      ? `${lkDate(upcomingBookings.find(b => b.booking_status === 'confirmed')!.starts_at)} @ ${lkTime(upcomingBookings.find(b => b.booking_status === 'confirmed')!.starts_at)}`
       : "None scheduled"
   };
 
@@ -571,8 +561,8 @@ if (data) venueProfile = data as unknown as VenueProfile;
                         >
                           <div className="w-2 h-2 rounded-full bg-brand-pink mt-1.5 flex-shrink-0" />
                           <div>
-                            <p className="text-sm text-gray-300 mb-1">{n.message_preview}</p>
-                            <p className="text-[10px] text-gray-500 uppercase font-bold">{new Date(n.send_at).toLocaleTimeString()}</p>
+                            <p className="text-sm text-gray-300 mb-1">{n.message_preview ?? ''}</p>
+                            <p className="text-[10px] text-gray-500 uppercase font-bold">{n.sent_at ? lkTime(n.sent_at) : ''}</p>
                           </div>
                         </div>
                       ))
@@ -736,14 +726,14 @@ if (data) venueProfile = data as unknown as VenueProfile;
                           <div>
                             <h4 className="text-lg font-black text-white uppercase tracking-tight">{req.event_type}</h4>
                             <div className="flex flex-wrap gap-4 text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">
-                              <span className="flex items-center gap-1"><Calendar size={14} /> {new Date(req.event_date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                              <span className="flex items-center gap-1"><Clock size={14} /> {req.start_time} · {req.duration_hours} hrs</span>
-                              <span className="flex items-center gap-1 text-brand-lime"><CreditCard size={14} /> {req.budget_min}–{req.budget_max} {req.currency || 'USD'}</span>
+                              <span className="flex items-center gap-1"><Calendar size={14} /> {lkDate(req.starts_at, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                              <span className="flex items-center gap-1"><Clock size={14} /> {lkTime(req.starts_at)} · {req.duration_hours} hrs</span>
+                              <span className="flex items-center gap-1 text-brand-lime"><CreditCard size={14} /> {req.budget_min}–{req.budget_max} LKR</span>
                             </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
-                          <StatusBadge status={req.status} />
+                          <StatusBadge status={req.status ?? 'open'} />
                           {expandedQuoteRequest === req.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                         </div>
                       </div>
@@ -806,7 +796,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                                     </div>
                                     <div className="flex gap-2">
                                       <StatusBadge status={quote.quote_status} />
-                                      {quote.quote_status === 'sent' && (
+                                        {quote.quote_status === 'pending' && (
                                         <>
                                           <Button 
                                             size="sm" 
@@ -859,12 +849,12 @@ if (data) venueProfile = data as unknown as VenueProfile;
                       <div className="flex flex-col md:flex-row">
                         {/* Left: Date Tile */}
                         <div className="md:w-32 bg-white/5 flex flex-col items-center justify-center p-6 border-r border-white/5 border-l-4 border-l-brand-lime">
-                          <span className="text-3xl font-black text-brand-lime leading-none">{new Date(booking.event_date).getDate()}</span>
-                          <span className="text-xs font-black text-brand-lime uppercase tracking-widest">{new Date(booking.event_date).toLocaleDateString('en-US', { month: 'short' })}</span>
+                          <span className="text-3xl font-black text-brand-lime leading-none">{lkDate(booking.starts_at, { day: 'numeric' })}</span>
+                          <span className="text-xs font-black text-brand-lime uppercase tracking-widest">{lkDate(booking.starts_at, { month: 'short' })}</span>
                           <div className="mt-4 flex flex-col items-center text-[10px] font-bold text-gray-500 uppercase tracking-tighter">
-                            <span>{booking.start_time}</span>
+                            <span>{lkTime(booking.starts_at)}</span>
                             <span className="my-0.5">↓</span>
-                            <span>{booking.end_time || 'TBA'}</span>
+                            <span>{lkTime(booking.ends_at)}</span>
                           </div>
                         </div>
 
@@ -911,7 +901,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                             </div>
                             <div className="flex flex-wrap justify-end gap-2">
                               {/* Contract Badge */}
-                              {booking.contracts?.status === 'signed' ? (
+                              {booking.contracts?.status === 'fully_signed' ? (
                                 <span className="bg-brand-lime/10 text-brand-lime text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-md border border-brand-lime/20">Contract Signed</span>
                               ) : booking.contracts?.status === 'sent' ? (
                                 <div className="flex flex-col items-end">
@@ -950,7 +940,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                               <h5 className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Booking Message</h5>
                               <p className="text-sm text-gray-400 italic">"{booking.message_to_talent || 'No message provided.'}"</p>
                             </div>
-                            {['confirmed', 'in_progress'].includes(booking.booking_status) && (
+                              {['confirmed'].includes(booking.booking_status) && (
                               <div>
                                 <h5 className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Talent Contact Details</h5>
                                 <div className="space-y-2">
@@ -1006,7 +996,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                         pastBookings.map(b => (
                           <tr key={b.id} className="hover:bg-white/5 transition-colors group">
                             <td className="p-4 text-sm font-bold text-white">
-                              {new Date(b.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                             {lkDate(b.starts_at, { day: 'numeric', month: 'short', year: 'numeric' })}
                             </td>
                             <td className="p-4">
                               <div className="flex items-center gap-3">
@@ -1081,7 +1071,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                 <div>
                   <h4 className="text-sm font-black text-white uppercase tracking-tight">{activeMessageBooking.profiles_talent?.stage_name}</h4>
                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                    Booking: {new Date(activeMessageBooking.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                   Booking: {lkDate(activeMessageBooking.starts_at)}
                   </p>
                 </div>
               </div>
@@ -1104,7 +1094,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                       <div className={`p-4 rounded-2xl text-sm leading-relaxed ${isMine ? 'bg-brand-purple text-white rounded-tr-none' : 'bg-white/5 text-gray-300 rounded-tl-none'}`}>
                         {msg.content}
                         <p className={`text-[8px] mt-2 font-bold uppercase opacity-50 ${isMine ? 'text-right' : 'text-left'}`}>
-                          {msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                         {msg.created_at ? lkTime(msg.created_at) : ''}
                         </p>
                       </div>
                     </div>
