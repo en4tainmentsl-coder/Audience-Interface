@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // uploadToCloudinary.ts  —  En4tainment / En410
-// Client utility for uploading PUBLIC media assets to Cloudinary.
+// Client utility for uploading PUBLIC image assets to Cloudinary.
 //
 // Sensitive assets (kyc_front, kyc_back, venue_document) are NOT handled here.
 // They live in a private Cloudflare R2 bucket — see uploadToR2.ts.
@@ -109,7 +109,7 @@ export async function uploadToCloudinary(
     }
   }
 
-  const { signature, timestamp, cloud_name, api_key, upload_preset, folder, resource_type } = signData
+  const { signature, timestamp, cloud_name, api_key, upload_preset, folder, public_id, resource_type } = signData
 
   // ── Step 2: Upload directly from browser to Cloudinary ──────────────────
   onProgress?.(15)
@@ -121,12 +121,14 @@ export async function uploadToCloudinary(
   formData.append('signature',     signature)
   formData.append('upload_preset', upload_preset)
   formData.append('folder',        folder)
+  formData.append('public_id',     public_id)
 
   let cloudinaryData: Record<string, unknown>
 
   try {
-    // resource_type comes from the signer: 'image' for avatars/covers,
-    // 'auto' for portfolio so video and audio are accepted too.
+    // resource_type comes from the signer and is 'image' for every asset
+    // type, portfolio included. It was briefly 'auto', which routed uploads
+    // to /auto/upload and let video and audio through.
     cloudinaryData = await uploadWithProgress(
       `https://api.cloudinary.com/v1_1/${cloud_name}/${resource_type ?? 'image'}/upload`,
       formData,
