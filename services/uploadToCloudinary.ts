@@ -67,13 +67,15 @@ export interface UploadError {
   stage:   'sign' | 'upload' | 'save'
 }
 
-// Client-side guard only — the real enforcement is server-side in
-// process-upload, which checks the size Cloudinary reports after upload
-// and deletes+rejects if it's over. This check exists purely so a user
-// gets instant feedback instead of waiting through a multi-MB upload only
-// to have it rejected afterwards. Keep this in sync with process-upload's
-// MAX_BYTES and upload-document's MAX_BYTES — all three are independent
-// constants in separate files/languages, no shared source of truth.
+// Client-side guard only, and not the security boundary. The server-side
+// backstop is process-upload, which reads the size Cloudinary reported and
+// destroys the asset before writing any DB row if it is over. But that size
+// is client-reported — Cloudinary's response, relayed by the browser — so a
+// malicious client can misreport it. Neither check inspects actual bytes.
+// A real hard-block requires proxying uploads through an Edge Function, the
+// way upload-document does for R2.
+// Keep in sync with process-upload's MAX_BYTES and upload-document's
+// MAX_BYTES — three independent constants, no shared source of truth.
 const MAX_BYTES = 5 * 1024 * 1024 // 5 MiB
 
 // ── Main upload function ─────────────────────────────────────────────────────
