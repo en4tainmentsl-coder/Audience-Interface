@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // uploadToCloudinary.ts  —  En4tainment / En410
-// Client utility for uploading PUBLIC media assets to Cloudinary.
+// Client utility for uploading PUBLIC image assets to Cloudinary.
 //
 // Sensitive assets (kyc_front, kyc_back, venue_document) are NOT handled here.
 // They live in a private Cloudflare R2 bucket — see uploadToR2.ts.
@@ -67,13 +67,15 @@ export interface UploadError {
   stage:   'sign' | 'upload' | 'save'
 }
 
-// Client-side guard only — the real enforcement is server-side in
-// process-upload, which checks the size Cloudinary reports after upload
-// and deletes+rejects if it's over. This check exists purely so a user
-// gets instant feedback instead of waiting through a multi-MB upload only
-// to have it rejected afterwards. Keep this in sync with process-upload's
-// MAX_BYTES and upload-document's MAX_BYTES — all three are independent
-// constants in separate files/languages, no shared source of truth.
+// Client-side guard only, and not the security boundary. The server-side
+// backstop is process-upload, which reads the size Cloudinary reported and
+// destroys the asset before writing any DB row if it is over. But that size
+// is client-reported — Cloudinary's response, relayed by the browser — so a
+// malicious client can misreport it. Neither check inspects actual bytes.
+// A real hard-block requires proxying uploads through an Edge Function, the
+// way upload-document does for R2.
+// Keep in sync with process-upload's MAX_BYTES and upload-document's
+// MAX_BYTES — three independent constants, no shared source of truth.
 const MAX_BYTES = 5 * 1024 * 1024 // 5 MiB
 
 // ── Main upload function ─────────────────────────────────────────────────────
@@ -109,7 +111,7 @@ export async function uploadToCloudinary(
     }
   }
 
-  const { signature, timestamp, cloud_name, api_key, upload_preset, folder, resource_type } = signData
+  const { signature, timestamp, cloud_name, api_key, upload_preset, folder, public_id, resource_type } = signData
 
   // ── Step 2: Upload directly from browser to Cloudinary ──────────────────
   onProgress?.(15)
@@ -121,12 +123,14 @@ export async function uploadToCloudinary(
   formData.append('signature',     signature)
   formData.append('upload_preset', upload_preset)
   formData.append('folder',        folder)
+  formData.append('public_id',     public_id)
 
   let cloudinaryData: Record<string, unknown>
 
   try {
-    // resource_type comes from the signer: 'image' for avatars/covers,
-    // 'auto' for portfolio so video and audio are accepted too.
+    // resource_type comes from the signer and is 'image' for every asset
+    // type, portfolio included. It was briefly 'auto', which routed uploads
+    // to /auto/upload and let video and audio through.
     cloudinaryData = await uploadWithProgress(
       `https://api.cloudinary.com/v1_1/${cloud_name}/${resource_type ?? 'image'}/upload`,
       formData,
