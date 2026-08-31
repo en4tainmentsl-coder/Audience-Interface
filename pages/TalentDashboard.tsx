@@ -2,23 +2,35 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { 
   Calendar, Clock, Image as ImageIcon, 
-  Star, Settings, LogOut
+  Settings, LogOut
 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { supabase } from '../services/supabase';
+import { TalentRating } from '../components/TalentRating';
+import type { RawTalentStats } from '../types';
+
+// bookings.starts_at / ends_at are timestamptz. Without an explicit timeZone
+// these render in the viewer's zone. Mirrors VenueDashboard.tsx.
+const LK_TZ = 'Asia/Colombo';
+
+const lkDate = (iso: string, opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' }): string =>
+  new Date(iso).toLocaleDateString('en-GB', { timeZone: LK_TZ, ...opts });
+
+const lkTime = (iso: string): string =>
+  new Date(iso).toLocaleTimeString('en-GB', { timeZone: LK_TZ, hour: '2-digit', minute: '2-digit' });
 
 interface TalentProfile {
   id: string;
   stage_name: string;
-  rating?: number;
+  talent_stats?: RawTalentStats;
   profile_photo_url?: string;
   bio?: string;
 }
 
 interface TalentDashboardBooking {
   id: string;
-  event_date: string;
-  start_time?: string;
+  starts_at: string;
+  ends_at?: string;
   booking_status: string;
   profiles_venues?: {
     name_of_venue: string;
@@ -50,13 +62,13 @@ export const TalentDashboard: React.FC = () => {
         .from('bookings')
         .select(`
           id,
-          event_date,
-          start_time,
+          starts_at,
+          ends_at,
           booking_status,
           profiles_venues (name_of_venue, name_of_location)
         `)
         .eq('talent_id', talentId)
-        .order('event_date', { ascending: false });
+        .order('starts_at', { ascending: false });
       
       setBookings(((bookingsData as unknown) as TalentDashboardBooking[]) || []);
 
@@ -93,7 +105,7 @@ export const TalentDashboard: React.FC = () => {
       // Fetch Talent Profile
       const { data: profile, error } = await supabase
         .from('profiles_talent')
-        .select('*')
+        .select('*, talent_stats(rating_average, rating_count)')
         .eq('user_id', user.id)
         .single();
 
@@ -152,10 +164,7 @@ export const TalentDashboard: React.FC = () => {
                 />
                 <div>
                   <h2 className="text-xl font-bold">{talent?.stage_name}</h2>
-                  <div className="flex items-center gap-1 text-brand-lime">
-                    <Star className="w-4 h-4 fill-current" />
-                    <span className="text-sm font-bold">{talent?.rating || 'N/A'}</span>
-                  </div>
+                  <TalentRating stats={talent?.talent_stats} size={16} className="text-sm font-bold text-brand-lime" />
                 </div>
               </div>
               
@@ -226,10 +235,10 @@ export const TalentDashboard: React.FC = () => {
                         <h3 className="font-bold text-lg">{booking.profiles_venues?.name_of_venue || 'Private Event'}</h3>
                         <div className="flex flex-wrap gap-4 text-sm text-gray-400">
                           <span className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" /> {new Date(booking.event_date).toLocaleDateString()}
+                            <Calendar className="w-4 h-4" /> {lkDate(booking.starts_at)}
                           </span>
                           <span className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" /> {booking.start_time || 'TBA'}
+                            <Clock className="w-4 h-4" /> {lkTime(booking.starts_at)}
                           </span>
                         </div>
                       </div>
@@ -266,9 +275,9 @@ export const TalentDashboard: React.FC = () => {
                       className="bg-brand-dark/50 border border-white/5 rounded-xl p-4 flex flex-col md:flex-row justify-between gap-4"
                     >
                       <div className="space-y-1">
-                                                <h3 className="font-bold text-lg">{quote.location || 'Location not specified'}</h3>
+                          <h3 className="font-bold text-lg">{quote.location || 'Location not specified'}</h3>
                         <p className="text-sm text-gray-400">
-                          {quote.event_type} — {new Date(quote.starts_at).toLocaleDateString('en-GB', { timeZone: 'Asia/Colombo' })}
+                          {quote.event_type} — {lkDate(quote.starts_at)}
                         </p>
                       </div>
                       <div className="flex items-center gap-3">

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router';
 import { Button } from '../components/Button';
-import { StarRating } from '../components/StarRating';
-import { PlayCircle, Heart, LogIn, AlertCircle, CheckCircle } from 'lucide-react';
+import { TalentRating } from '../components/TalentRating';
+import { PlayCircle, Heart, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { User } from '@supabase/supabase-js';
+import type { RawTalentStats } from '../types';
 
 // Stable per-browser identifier for anonymous hearts. Module scope deliberately:
 // it is used by both the initial fetch and the heart handler, which are separate
@@ -26,24 +27,13 @@ interface ArtistDetailData {
   description: string;
   bio: string;
   category: string;
-  rating: number;
+  stats: RawTalentStats;
   gallery: string[];
-}
-
-interface ReviewStar {
-  id: string;
-  reviewee_talent_id: string;
-  reviewer_user_id: string;   // was ReviewerUserUUID
-  rating: number;              // was Rating_1_to_5
-  created_at: string;
-  comment?: string;
-  user_name?: string;
 }
 
 export const ArtistDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [artist, setArtist] = useState<ArtistDetailData | null>(null);
-  const [reviews, setReviews] = useState<ReviewStar[]>([]);
   const [isHearted, setIsHearted] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -61,7 +51,7 @@ export const ArtistDetail: React.FC = () => {
           stage_name,
           bio,
           short_bio,
-          rating,
+          talent_stats (rating_average, rating_count),
           profile_status,
           is_public,
           type_of_performer,
@@ -104,22 +94,11 @@ export const ArtistDetail: React.FC = () => {
           description: talentData.short_bio || '',
           bio: talentData.bio || '',
           category: primaryGenre,
-          rating: talentData.rating || 0,
+          stats: talentData.talent_stats,
           gallery: profilePhotos
         });
             } else {
         setArtist(null);
-      } 
-
-      // Fetch Reviews from reviews_star
-      const { data: reviewsData } = await supabase
-        .from('reviews_star')
-        .select('*')
-        .eq('reviewee_talent_id', id)
-        .order('created_at', { ascending: false });
-      
-      if (reviewsData) {
-        setReviews((reviewsData as unknown) as ReviewStar[]);
       }
 
       // Check Heart if user is logged in
@@ -216,94 +195,6 @@ export const ArtistDetail: React.FC = () => {
   }
 };
   
-  const handleAddReview = async (rating: number): Promise<void> => {
-  setError(null);
-  setSuccess(null);
-
-  if (!user || !id) {
-    setError('Please login to leave a rating.');
-    return;
-  }
-
-  if (userRole !== 'client' && userRole !== 'venue') {
-    setError('Only Client or Venue accounts are permitted to submit star ratings.');
-    return;
-  }
-
-  if (rating < 1 || rating > 5) {
-    setError('Rating must be between 1 and 5.');
-    return;
-  }
-
-  try {
-    let completedBookingId: string | null = null;
-
-    if (userRole === 'venue') {
-      const { data: venueProfile } = await supabase
-        .from('profiles_venues')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!venueProfile) {
-        setError('Venue profile not found.');
-        return;
-      }
-
-      const { data: completedBooking } = await supabase
-        .from('bookings')
-        .select('id')
-        .eq('venue_id', venueProfile.id)
-        .eq('talent_id', id)
-        .eq('booking_status', 'completed')
-        .limit(1)
-        .single();
-
-      completedBookingId = completedBooking?.id ?? null;
-    } else {
-      const { data: completedBooking } = await supabase
-        .from('bookings')
-        .select('id')
-        .eq('client_user_id', user.id)
-        .eq('talent_id', id)
-        .eq('booking_status', 'completed')
-        .limit(1)
-        .single();
-
-      completedBookingId = completedBooking?.id ?? null;
-    }
-
-    if (!completedBookingId) {
-      setError('You can only review talent after a completed booking.');
-      return;
-    }
-
-    const comment: string | null = prompt('Enter your review:');
-    if (!comment) return;
-
-    const { error: reviewError } = await supabase.from('reviews_star').insert({
-      reviewee_talent_id: id,
-      reviewer_user_id: user.id,
-      rating: rating,
-      overall_rating: rating,
-      comment: comment,
-      booking_id: completedBookingId
-    });
-
-    if (reviewError) {
-      if (reviewError.code === '23505') {
-        setError("You've already rated this booking.");
-        return;
-      }
-      throw reviewError;
-    }
-
-    setSuccess('Rating submitted successfully!');
-  } catch (err: any) {
-    setError('Failed to submit rating: ' + err.message);
-  }
-};
-  
   if (!artist) return <div className="pt-32 text-center text-white" id="artist-not-found">Artist not found</div>;
 
   return (
@@ -333,8 +224,7 @@ export const ArtistDetail: React.FC = () => {
           </div>
           <h1 className="text-5xl md:text-7xl font-bold mb-2">{artist.name}</h1>
           <div className="flex items-center gap-4 mb-6" id="rating-summary">
-            <StarRating initialRating={artist.rating} readonly size={24} />
-            <span className="text-xl font-semibold text-brand-purple">{artist.rating}/5.0</span>
+            <TalentRating stats={artist.stats} variant="full" size={24} className="text-xl font-semibold" />
           </div>
           <Link to={`/request-quote?artistId=${artist.id}`} id="request-quote-top-btn">
             <Button size="lg" variant="primary">Request Quotation</Button>
@@ -377,54 +267,9 @@ export const ArtistDetail: React.FC = () => {
               ))}
             </div>
           </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-6 border-l-4 border-brand-purple pl-4 leading-none">Reviews</h2>
-            <div className="space-y-6">
-              {reviews.length === 0 ? (
-                <p className="text-gray-500 italic">No reviews yet. Be the first to leave one!</p>
-              ) : (
-                reviews.map((review: ReviewStar) => (
-                  <div key={review.id} className="bg-brand-surface p-6 rounded-xl border border-white/5" id={`review-${review.id}`}>
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h4 className="font-bold">{review.user_name || 'Anonymous'}</h4>
-                        <p className="text-xs text-gray-500">{new Date(review.created_at).toLocaleDateString()}</p>
-                      </div>
-                      <StarRating initialRating={review.rating} readonly size={16} />
-                    </div>
-                    <p className="text-gray-300">{review.comment || 'Star review details.'}</p>
-                  </div>
-                ))
-              )}
-            </div>
-          </section>
         </div>
 
         <div className="lg:col-span-1 space-y-8 text-left">
-          <div className="bg-brand-surface p-6 rounded-xl border border-white/5">
-            <h3 className="text-xl font-bold mb-4">Rate this Artist</h3>
-            {!user ? (
-              <div className="text-center py-4">
-                <p className="text-gray-400 text-sm mb-4">Please login to rate and review</p>
-                <Link to="/venue-portal">
-                  <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-                    <LogIn className="w-4 h-4" /> Go to Login
-                  </Button>
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <p className="text-gray-400 text-sm">Seen them live? Leave a rating!</p>
-                <div className="flex justify-center py-4 bg-brand-dark/50 rounded-lg">
-                   <StarRating initialRating={0} size={32} onRate={handleAddReview} />
-                </div>
-                <p className="text-xs text-center text-brand-lime">Logged in as {user.email}</p>
-                {userRole && <p className="text-[10px] text-center text-gray-500 uppercase tracking-widest">Role: {userRole}</p>}
-              </div>
-            )}
-          </div>
-          
           <div className="bg-gradient-to-br from-brand-indigo to-brand-purple p-6 rounded-xl shadow-xl">
              <h3 className="text-xl font-bold mb-2">Want to book {artist.name}?</h3>
              <p className="text-white/80 text-sm mb-6">Dates fill up fast. Secure your spot today.</p>

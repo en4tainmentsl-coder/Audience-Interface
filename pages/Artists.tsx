@@ -22,7 +22,7 @@ export const Artists: React.FC = () => {
           stage_name,
           bio,
           short_bio,
-          rating,
+          talent_stats (rating_average, rating_count),
           profile_status,
           is_public,
           is_featured,
@@ -61,7 +61,7 @@ export const Artists: React.FC = () => {
             description: talent.short_bio || '',
             bio: talent.bio || '',
             category: primaryGenre,
-            rating: talent.rating || 0,
+            stats: talent.talent_stats,
             gallery: media.filter(m => m.resource_type === 'image').map(m => m.cloudinary_secure_url) || [],
             is_featured: !!talent.is_featured,
           };

@@ -10,7 +10,32 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -3479,61 +3504,37 @@ export type Database = {
       }
       reviews_star: {
         Row: {
-          audience_response_rating: number | null
           booking_id: string
           comment: string | null
           created_at: string
-          event_type: Database["public"]["Enums"]["events_type"] | null
           id: string
-          is_verified: boolean
-          musical_ability_rating: number | null
-          overall_rating: number | null
-          professionalism_rating: number | null
           rating: number
           reviewee_talent_id: string | null
           reviewee_venue_id: string | null
           reviewer_user_id: string
-          sound_quality_rating: number | null
-          stage_presence_rating: number | null
-          would_book_again: boolean | null
+          would_book_again: boolean
         }
         Insert: {
-          audience_response_rating?: number | null
           booking_id: string
           comment?: string | null
           created_at?: string
-          event_type?: Database["public"]["Enums"]["events_type"] | null
           id?: string
-          is_verified?: boolean
-          musical_ability_rating?: number | null
-          overall_rating?: number | null
-          professionalism_rating?: number | null
           rating: number
           reviewee_talent_id?: string | null
           reviewee_venue_id?: string | null
           reviewer_user_id?: string
-          sound_quality_rating?: number | null
-          stage_presence_rating?: number | null
-          would_book_again?: boolean | null
+          would_book_again: boolean
         }
         Update: {
-          audience_response_rating?: number | null
           booking_id?: string
           comment?: string | null
           created_at?: string
-          event_type?: Database["public"]["Enums"]["events_type"] | null
           id?: string
-          is_verified?: boolean
-          musical_ability_rating?: number | null
-          overall_rating?: number | null
-          professionalism_rating?: number | null
           rating?: number
           reviewee_talent_id?: string | null
           reviewee_venue_id?: string | null
           reviewer_user_id?: string
-          sound_quality_rating?: number | null
-          stage_presence_rating?: number | null
-          would_book_again?: boolean | null
+          would_book_again?: boolean
         }
         Relationships: [
           {
@@ -4094,6 +4095,41 @@ export type Database = {
           },
         ]
       }
+      talent_stats: {
+        Row: {
+          heart_count: number
+          rating_average: number | null
+          rating_count: number
+          rating_sum: number
+          talent_id: string
+          updated_at: string
+        }
+        Insert: {
+          heart_count?: number
+          rating_average?: number | null
+          rating_count?: number
+          rating_sum?: number
+          talent_id: string
+          updated_at?: string
+        }
+        Update: {
+          heart_count?: number
+          rating_average?: number | null
+          rating_count?: number
+          rating_sum?: number
+          talent_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_stats_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: true
+            referencedRelation: "profiles_talent"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       talent_unavailability: {
         Row: {
           created_at: string
@@ -4229,6 +4265,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_talent_rating_delta: {
+        Args: {
+          p_count_delta: number
+          p_sum_delta: number
+          p_talent_id: string
+        }
+        Returns: undefined
+      }
+      check_talent_rating_drift: {
+        Args: never
+        Returns: {
+          actual_average: number
+          actual_count: number
+          actual_sum: number
+          stored_average: number
+          stored_count: number
+          stored_sum: number
+          talent_id: string
+        }[]
+      }
       distance_km: {
         Args: { lat1: number; lat2: number; lon1: number; lon2: number }
         Returns: number
@@ -4245,6 +4301,10 @@ export type Database = {
           p_talent_id: string
         }
         Returns: boolean
+      }
+      recompute_talent_rating_stats: {
+        Args: { p_talent_id?: string }
+        Returns: number
       }
     }
     Enums: {
@@ -4527,6 +4587,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       admin_level: [

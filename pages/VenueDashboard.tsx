@@ -2,12 +2,14 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { 
   Calendar, MessageSquare, Bell, LogOut, ChevronDown, ChevronUp, 
-  CheckCircle, Clock, AlertCircle, Star, FileText, 
+  CheckCircle, Clock, AlertCircle, FileText, 
   CreditCard, X, Send, Users, TrendingUp, Zap 
 } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { Button } from '../components/Button';
 import type { Database } from '../database.types';
+import { TalentRating } from '../components/TalentRating';
+import type { RawTalentStats } from '../types';
 
 // bookings.starts_at / ends_at and quote_requests.starts_at are timestamptz.
 // Without an explicit timeZone these render in the *viewer's* zone, so an
@@ -72,7 +74,7 @@ interface BookingQuote {
   profiles_talent?: {
     stage_name: string;
     profile_photo_url?: string;
-    rating?: number;
+    talent_stats?: RawTalentStats;
     type_of_performer?: string;
   };
 }
@@ -95,7 +97,7 @@ interface UpcomingBooking extends BookingRow {
     user_id?: string;
     stage_name: string;
     profile_photo_url?: string;
-    rating?: number;
+    talent_stats?: RawTalentStats;
     type_of_performer?: string;
     is_verified?: boolean;
     mobile?: string;
@@ -114,13 +116,8 @@ interface PastBooking extends BookingRow {
   profiles_talent?: {
     stage_name: string;
     profile_photo_url?: string;
-    rating?: number;
+    talent_stats?: RawTalentStats;
   };
-  reviews_star?: Array<{
-    rating: number;
-    overall_rating: number;
-    comment?: string;
-  }>;
 }
 
 // Derived from the live schema rather than hand-listed: the column is sent_at,
@@ -262,20 +259,20 @@ if (data) venueProfile = data as unknown as VenueProfile;
       ] = await Promise.all([
         // 2. Quote Requests
         supabase.from('quote_requests')
-          .select('*, quotes(id, talent_id, quoted_amount, total_client_price, quote_status, expires_at, notes_to_client, profiles_talent(stage_name, profile_photo_url, rating, type_of_performer))')
+          .select('*, quotes(id, talent_id, quoted_amount, total_client_price, quote_status, expires_at, notes_to_client, profiles_talent(stage_name, profile_photo_url, talent_stats(rating_average, rating_count), type_of_performer))')
           .eq('venue_id', venueProfile.id)
           .order('created_at', { ascending: false }),
 
         // 3. Upcoming Bookings
         supabase.from('bookings')
-          .select('*, profiles_talent(stage_name, profile_photo_url, rating, type_of_performer, mobile, email, is_verified), contracts(id, status, signed_by_talent_at, signed_by_venue_at), payments(id, payment_type, payment_status, gross_amount, paid_at, currency)')
+          .select('*, profiles_talent(stage_name, profile_photo_url, talent_stats(rating_average, rating_count), type_of_performer, mobile, email, is_verified), contracts(id, status, signed_by_talent_at, signed_by_venue_at), payments(id, payment_type, payment_status, gross_amount, paid_at, currency)')
           .eq('venue_id', venueProfile.id)
           .in('booking_status', ['confirmed', 'pending'])
           .order('starts_at', { ascending: true }),
 
         // 4. Past Bookings
         supabase.from('bookings')
-          .select('*, profiles_talent(stage_name, profile_photo_url, rating), reviews_star(rating, overall_rating, comment, created_at)')
+          .select('*, profiles_talent(stage_name, profile_photo_url, talent_stats(rating_average, rating_count))')
           .eq('venue_id', venueProfile.id)
           .eq('booking_status', 'completed')
           .order('starts_at', { ascending: false })
@@ -385,16 +382,13 @@ if (data) venueProfile = data as unknown as VenueProfile;
     }
   };
 
-  const handleCancelBooking = async (bookingId: string): Promise<void> => {
-    if (!window.confirm("Are you sure you want to cancel this booking?")) return;
-    try {
-      const { error } = await supabase.from('bookings').update({ booking_status: 'cancelled' }).eq('id', bookingId);
-      if (error) throw error;
-      showToast("Booking cancelled.");
-      loadDashboardData();
-    } catch {
-      showToast("Failed to cancel booking.");
-    }
+  // Cancellation moved server-side on 2026-08-31 (Todoist 6hPqRpRPcFP5HQCX).
+  // bookings has no UPDATE policy for authenticated any more, and PostgREST
+  // returns success on zero RLS matches — so the old client-side update
+  // reported "Booking cancelled." while changing nothing at all.
+  // Disabled until the cancel-booking Edge Function exists.
+  const handleCancelBooking = async (): Promise<void> => {
+    showToast("To cancel a booking, please contact support. Self-service cancellation is coming soon.");
   };
 
   const openMessages = async (booking: UpcomingBooking): Promise<void> => {
@@ -764,9 +758,8 @@ if (data) venueProfile = data as unknown as VenueProfile;
                                     <div>
                                       <h6 className="font-black text-white">{quote.profiles_talent?.stage_name}</h6>
                                       <p className="text-[10px] font-bold text-brand-purple uppercase tracking-widest">{quote.profiles_talent?.type_of_performer}</p>
-                                      <div className="flex items-center gap-1 text-brand-lime mt-1">
-                                        <Star size={10} fill="currentColor" />
-                                        <span className="text-[10px] font-black">{quote.profiles_talent?.rating || 'N/A'}</span>
+                                      <div className="mt-1">
+                                        <TalentRating stats={quote.profiles_talent?.talent_stats} size={10} className="text-[10px] font-black text-brand-lime" />
                                       </div>
                                     </div>
                                   </div>
@@ -876,11 +869,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                             <div>
                               <h4 className="text-xl font-black text-white">{booking.profiles_talent?.stage_name}</h4>
                               <p className="text-xs font-bold text-brand-purple uppercase tracking-widest mb-2">{booking.profiles_talent?.type_of_performer}</p>
-                              <div className="flex gap-0.5 text-brand-lime">
-                                {[1,2,3,4,5].map(i => (
-                                  <Star key={i} size={12} fill={i <= (booking.profiles_talent?.rating || 0) ? "currentColor" : "none"} />
-                                ))}
-                              </div>
+                              <TalentRating stats={booking.profiles_talent?.talent_stats} variant="full" size={12} className="text-xs text-brand-lime" />
                               <button 
                                 onClick={() => openMessages(booking)}
                                 className="mt-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-brand-pink hover:text-brand-lime transition-colors"
@@ -953,7 +942,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                           {['pending', 'confirmed'].includes(booking.booking_status) && (
                             <div className="pt-4 border-t border-white/5 flex justify-end">
                               <button 
-                                onClick={() => handleCancelBooking(booking.id)}
+                                onClick={() => handleCancelBooking()}
                                 className="text-[10px] font-black uppercase tracking-widest text-brand-pink border border-brand-pink/40 px-4 py-2 rounded-full hover:bg-brand-pink/10 transition-all shadow-md"
                               >
                                 Cancel Booking
@@ -983,14 +972,13 @@ if (data) venueProfile = data as unknown as VenueProfile;
                         <th className="p-4 text-[10px] font-black uppercase tracking-widest text-gray-500">Talent</th>
                         <th className="p-4 text-[10px] font-black uppercase tracking-widest text-gray-500">Event Type</th>
                         <th className="p-4 text-[10px] font-black uppercase tracking-widest text-gray-500">Amount</th>
-                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-gray-500">Review</th>
                         <th className="p-4 text-[10px] font-black uppercase tracking-widest text-gray-500">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
                       {pastBookings.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="p-12 text-center text-gray-500 italic">No past performances recorded.</td>
+                         <td colSpan={5} className="p-12 text-center text-gray-500 italic">No past performances recorded.</td>
                         </tr>
                       ) : (
                         pastBookings.map(b => (
@@ -1010,17 +998,6 @@ if (data) venueProfile = data as unknown as VenueProfile;
                             </td>
                             <td className="p-4 text-sm text-gray-400">Corporate Event</td>
                             <td className="p-4 text-sm font-black text-brand-lime">{b.agreed_gross_amount} {b.currency}</td>
-                            <td className="p-4">
-                              {b.reviews_star?.[0] ? (
-                                <div className="flex gap-0.5 text-brand-lime">
-                                  {[1,2,3,4,5].map(i => (
-                                    <Star key={i} size={10} fill={i <= b.reviews_star![0].overall_rating ? "currentColor" : "none"} />
-                                  ))}
-                                </div>
-                              ) : (
-                                <span className="text-[10px] font-bold text-gray-600 uppercase">No Review</span>
-                              )}
-                            </td>
                             <td className="p-4">
                               <button className="text-[10px] font-black uppercase tracking-widest text-brand-purple hover:text-brand-pink transition-colors">View Details</button>
                             </td>
