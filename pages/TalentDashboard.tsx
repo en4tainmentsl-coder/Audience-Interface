@@ -2,15 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { 
   Calendar, Clock, Image as ImageIcon, 
-  Star, Settings, LogOut
+  Settings, LogOut
 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { supabase } from '../services/supabase';
+import { TalentRating } from '../components/TalentRating';
+import type { RawTalentStats } from '../types';
 
 interface TalentProfile {
   id: string;
   stage_name: string;
-  rating?: number;
+  talent_stats?: RawTalentStats;
   profile_photo_url?: string;
   bio?: string;
 }
@@ -93,7 +95,7 @@ export const TalentDashboard: React.FC = () => {
       // Fetch Talent Profile
       const { data: profile, error } = await supabase
         .from('profiles_talent')
-        .select('*')
+        .select('*, talent_stats(rating_average, rating_count)')
         .eq('user_id', user.id)
         .single();
 
@@ -152,10 +154,7 @@ export const TalentDashboard: React.FC = () => {
                 />
                 <div>
                   <h2 className="text-xl font-bold">{talent?.stage_name}</h2>
-                  <div className="flex items-center gap-1 text-brand-lime">
-                    <Star className="w-4 h-4 fill-current" />
-                    <span className="text-sm font-bold">{talent?.rating || 'N/A'}</span>
-                  </div>
+                  <TalentRating stats={talent?.talent_stats} size={16} className="text-sm font-bold text-brand-lime" />
                 </div>
               </div>
               

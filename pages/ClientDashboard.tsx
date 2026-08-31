@@ -2,11 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { 
   Calendar, Clock, Heart, CreditCard, 
-  Star, Settings, LogOut, ChevronRight,
+  Settings, LogOut, ChevronRight,
   Shield, Music, MapPin
 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { supabase } from '../services/supabase';
+import { TalentRating } from '../components/TalentRating';
+import type { RawTalentStats } from '../types';
+
+// bookings.starts_at and quote_requests.starts_at are timestamptz. Without an
+// explicit timeZone these render in the *viewer's* zone, so an 8pm–1am wedding
+// shows the wrong date for a client browsing from abroad. Mirrors the helpers
+// already in VenueDashboard.tsx.
+const LK_TZ = 'Asia/Colombo';
+
+const lkDate = (iso: string, opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' }): string =>
+  new Date(iso).toLocaleDateString('en-GB', { timeZone: LK_TZ, ...opts });
 
 interface ClientProfile {
   id: string;
@@ -17,7 +28,7 @@ interface ClientProfile {
 
 interface ClientDashboardBooking {
   id: string;
-  event_date: string;
+  starts_at: string;
   booking_status: string;
   location?: string;
   profiles_talent?: {
@@ -33,7 +44,7 @@ interface ClientDashboardBooking {
 interface ClientDashboardQuote {
   id: string;
   event_type: string;
-  event_date: string;
+  starts_at: string;
   status: string;
   profiles_talent?: {
     stage_name: string;
@@ -47,7 +58,7 @@ interface ClientDashboardFavorite {
     id: string;
     stage_name: string;
     profile_photo_url?: string;
-    rating?: number;
+    talent_stats?: RawTalentStats;
   };
 }
 
@@ -67,14 +78,14 @@ export const ClientDashboard: React.FC = () => {
         .from('bookings')
         .select(`
           id,
-          event_date,
+          starts_at,
           booking_status,
           location,
           profiles_talent (stage_name, profile_photo_url),
           profiles_venues (name_of_venue, name_of_location)
         `)
         .eq('client_user_id', userId)
-        .order('event_date', { ascending: false });
+        .order('starts_at', { ascending: false });
       
       setBookings(((bookingsData as unknown) as ClientDashboardBooking[]) || []);
 
@@ -84,7 +95,7 @@ export const ClientDashboard: React.FC = () => {
         .select(`
           id,
           event_type,
-          event_date,
+          starts_at,
           status,
           profiles_talent (stage_name, profile_photo_url)
         `)
@@ -98,7 +109,7 @@ export const ClientDashboard: React.FC = () => {
         .from('talent_favourites')
         .select(`
           id,
-          profiles_talent (id, stage_name, profile_photo_url, rating)
+          profiles_talent (id, stage_name, profile_photo_url, talent_stats(rating_average, rating_count))
           `)
           .eq('user_id', userId);
       
@@ -193,10 +204,7 @@ export const ClientDashboard: React.FC = () => {
                       />
                       <div className="flex-grow">
                         <h4 className="font-semibold group-hover:text-brand-purple transition-colors">{fav.profiles_talent?.stage_name}</h4>
-                        <div className="flex items-center gap-1 text-brand-lime text-xs">
-                          <Star className="w-3 h-3 fill-current" />
-                          <span>{fav.profiles_talent?.rating || 'N/A'}</span>
-                        </div>
+                        <TalentRating stats={fav.profiles_talent?.talent_stats} size={12} className="text-brand-lime text-xs" />
                       </div>
                       <ChevronRight className="w-4 h-4 text-gray-600 group-hover:text-white transition-colors" />
                     </div>
@@ -264,7 +272,7 @@ export const ClientDashboard: React.FC = () => {
                           <h3 className="font-bold text-lg">{booking.profiles_talent?.stage_name || 'TBA'}</h3>
                           <div className="flex flex-wrap gap-4 text-sm text-gray-400">
                             <span className="flex items-center gap-1">
-                              <Calendar className="w-4 h-4" /> {new Date(booking.event_date).toLocaleDateString()}
+                              <Calendar className="w-4 h-4" /> {lkDate(booking.starts_at)}
                             </span>
                             <span className="flex items-center gap-1">
                               <MapPin className="w-4 h-4" /> {booking.profiles_venues?.name_of_venue || booking.location || 'TBA'}
@@ -310,7 +318,7 @@ export const ClientDashboard: React.FC = () => {
                         </div>
                         <div className="space-y-1">
                           <h3 className="font-bold text-lg">{quote.profiles_talent?.stage_name || 'General Request'}</h3>
-                          <p className="text-sm text-gray-400">{quote.event_type} — {new Date(quote.event_date).toLocaleDateString()}</p>
+                          <p className="text-sm text-gray-400">{quote.event_type} — {lkDate(quote.starts_at)}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
