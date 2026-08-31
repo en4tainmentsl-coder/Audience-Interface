@@ -1,9 +1,20 @@
+/** A talent_stats row as PostgREST returns it.
+ *  rating_average is a STRING because Postgres numeric serialises as one. */
+export interface TalentStatsRow {
+  rating_average: string | number | null;
+  rating_count: number | string | null;
+}
+
+/** PostgREST may embed this as an object or an array, and an unrated talent
+ *  has no talent_stats row at all — so null and undefined are valid states. */
+export type RawTalentStats = TalentStatsRow | TalentStatsRow[] | null | undefined;
+
 export interface Artist {
   id: string;
   name: string;
   category: string;
   imageUrl: string;
-  rating: number;
+  stats: RawTalentStats;
   description: string;
   bio: string;
   gallery: string[];
@@ -32,7 +43,7 @@ export interface Quote {
   profiles_talent?: {
     stage_name: string;
     profile_photo_url: string;
-    rating: number;
+    talent_stats?: RawTalentStats;
     type_of_performer: string;
   };
 }

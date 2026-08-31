@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { ArrowRight, Heart, AlertCircle } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { Artist } from '../types';
+import { TalentRating } from './TalentRating';
 
 // ─────────────────────────────────────────────────────────────────────────
 // FlexArtistCard
@@ -148,7 +149,7 @@ export const FlexArtistCard: React.FC<FlexArtistCardProps> = ({ artist, featured
               {artist.name}
             </h3>
             <div className="flex items-center gap-1 text-brand-lime shrink-0 pt-1">
-              <span className="text-xs font-black">{artist.rating.toFixed(1)}</span>
+              <TalentRating stats={artist.stats} size={12} className="text-xs font-black" />
             </div>
           </div>
 
