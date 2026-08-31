@@ -149,14 +149,16 @@ begin
          then round(p_sum_delta::numeric / p_count_delta, 3)
          else null end
   )
+  -- The existing row is referenced as talent_stats.col, unqualified.
+  -- public.talent_stats.col does not parse inside ON CONFLICT DO UPDATE.
   on conflict (talent_id) do update
-    set rating_sum   = public.talent_stats.rating_sum   + p_sum_delta,
-        rating_count = public.talent_stats.rating_count + p_count_delta,
+    set rating_sum   = talent_stats.rating_sum   + p_sum_delta,
+        rating_count = talent_stats.rating_count + p_count_delta,
         rating_average = case
-          when public.talent_stats.rating_count + p_count_delta > 0
+          when talent_stats.rating_count + p_count_delta > 0
           then round(
-                 (public.talent_stats.rating_sum + p_sum_delta)::numeric
-                 / (public.talent_stats.rating_count + p_count_delta), 3)
+                 (talent_stats.rating_sum + p_sum_delta)::numeric
+                 / (talent_stats.rating_count + p_count_delta), 3)
           else null
         end,
         updated_at = now();
