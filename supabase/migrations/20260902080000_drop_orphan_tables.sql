@@ -1,0 +1,71 @@
+-- Drop two abandoned tables, verified orphaned 2026-09-02.
+--
+-- Both were confirmed by shallow-cloning Audience-Interface and
+-- Talent_Interface and grepping for call sites. Both have ZERO references in
+-- application code - the only hits are the baseline migration and the
+-- generated database.types.ts. Both have zero rows.
+--
+-- For contrast, the live models are well referenced:
+--   talent_favourites     - 12 application call sites
+--   pricing_per_session   -  3 application call sites
+--   talent_pricing        -  0
+--   talent_hearts         -  0
+--
+-- No CASCADE, deliberately. Dependencies were checked (no views, no incoming
+-- foreign keys) and a surprise should abort this migration, not be silently
+-- destroyed by it.
+
+-- 1. talent_pricing - the remains of an ABANDONED PRICING ARCHITECTURE.
+--
+-- Not a duplicate of profiles_talent.pricing_per_session. Its shape shows a
+-- pricing-TIERS design: multiple named packages per talent at different
+-- durations (label, description, price_amount, duration_minutes, is_active).
+-- That is incompatible with the settled model of a single Starting Rate with
+-- a continuous pro-rata multiplier and a 4-hour floor.
+--
+-- It surfaced in the RLS audit as a second pricing surface with ALL for the
+-- owning talent, no trigger, and public read - which would have bypassed the
+-- 30-day cooldown shipped in 20260901000000 had it been live.
+--
+-- Note: the trigger named "talent_pricing_cooldown" is on profiles_talent,
+-- NOT on this table. The naming collision is what made it look connected.
+--
+-- Original definition, for recovery:
+--   id               uuid PK default gen_random_uuid()
+--   talent_id        uuid NOT NULL -> profiles_talent(id) ON DELETE CASCADE
+--   label            text NOT NULL default ''
+--   description      text default ''
+--   price_amount     numeric NOT NULL default 1000
+--   currency         text NOT NULL default 'LKR'
+--   duration_minutes smallint NOT NULL
+--   is_active        boolean NOT NULL default true
+--   created_at       timestamptz NOT NULL default now()
+--   updated_at       timestamptz NOT NULL default now()
+--   CHECK price_amount >= 0, char_length(currency) = 3, duration_minutes > 0
+DROP TABLE public.talent_pricing;
+
+-- 2. talent_hearts - superseded by talent_favourites.
+--
+-- talent_favourites is the live heart model and supports anonymous hearts via
+-- visitor_id, which this table cannot express (user_id is NOT NULL). Keeping
+-- it also polluted every RLS audit: it still carried live write policies, so
+-- it kept appearing as an active table needing attention.
+--
+-- Original definition, for recovery:
+--   id         uuid PK default gen_random_uuid()
+--   talent_id  uuid NOT NULL
+--   user_id    uuid NOT NULL
+--   created_at timestamptz NOT NULL default now()
+DROP TABLE public.talent_hearts;
+
+-- 3. Redundant CHECK on profiles_talent, spotted 2026-09-01 and deferred to
+--    whenever something else touched pricing. This is that moment.
+--
+-- chk_talent_pricing_positive   CHECK (pricing_per_session >= 0)
+-- profiles_talent_pricing_range CHECK (pricing_per_session IS NULL
+--                                      OR (> 0 AND <= 10000000))
+--
+-- The range check is strictly stronger: it rejects zero, which the positive
+-- check permits. Nothing is lost.
+ALTER TABLE public.profiles_talent
+  DROP CONSTRAINT IF EXISTS chk_talent_pricing_positive;
