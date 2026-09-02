@@ -244,7 +244,7 @@ export type Database = {
           message_to_talent: string | null
           payment_advanced: boolean
           payment_advanced_at: string | null
-          quote_id: string | null
+          quote_id: string
           sscl_amount: number
           starts_at: string
           talent_id: string
@@ -273,7 +273,7 @@ export type Database = {
           message_to_talent?: string | null
           payment_advanced?: boolean
           payment_advanced_at?: string | null
-          quote_id?: string | null
+          quote_id: string
           sscl_amount?: number
           starts_at: string
           talent_id: string
@@ -302,7 +302,7 @@ export type Database = {
           message_to_talent?: string | null
           payment_advanced?: boolean
           payment_advanced_at?: string | null
-          quote_id?: string | null
+          quote_id?: string
           sscl_amount?: number
           starts_at?: string
           talent_id?: string
@@ -342,7 +342,7 @@ export type Database = {
           {
             foreignKeyName: "Bookings_quote_id_fkey"
             columns: ["quote_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "quotes"
             referencedColumns: ["id"]
           },
@@ -3301,7 +3301,7 @@ export type Database = {
           location: string | null
           special_requirements: string | null
           starts_at: string
-          status: Database["public"]["Enums"]["quotation_request_status"] | null
+          status: Database["public"]["Enums"]["quotation_request_status"]
           talent_id: string
           talent_rate_at_request: number | null
           updated_at: string | null
@@ -3325,9 +3325,7 @@ export type Database = {
           location?: string | null
           special_requirements?: string | null
           starts_at: string
-          status?:
-            | Database["public"]["Enums"]["quotation_request_status"]
-            | null
+          status?: Database["public"]["Enums"]["quotation_request_status"]
           talent_id: string
           talent_rate_at_request?: number | null
           updated_at?: string | null
@@ -3351,9 +3349,7 @@ export type Database = {
           location?: string | null
           special_requirements?: string | null
           starts_at?: string
-          status?:
-            | Database["public"]["Enums"]["quotation_request_status"]
-            | null
+          status?: Database["public"]["Enums"]["quotation_request_status"]
           talent_id?: string
           talent_rate_at_request?: number | null
           updated_at?: string | null
@@ -3387,8 +3383,7 @@ export type Database = {
         Row: {
           commission_amount: number | null
           commission_rate_percent: number
-          counter_used: boolean
-          created_at: string | null
+          created_at: string
           equipment_fee: number | null
           equipment_notes: string | null
           equipment_provided_by: Database["public"]["Enums"]["equipment_responsibility"]
@@ -3397,7 +3392,7 @@ export type Database = {
           notes_to_client: string | null
           performer_count: number | null
           quote_request_id: string
-          quote_status: Database["public"]["Enums"]["quotation_status"] | null
+          quote_status: Database["public"]["Enums"]["quotation_status"]
           quoted_amount: number
           sent_at: string
           setup_arrival_at: string | null
@@ -3410,8 +3405,7 @@ export type Database = {
         Insert: {
           commission_amount?: number | null
           commission_rate_percent?: number
-          counter_used?: boolean
-          created_at?: string | null
+          created_at?: string
           equipment_fee?: number | null
           equipment_notes?: string | null
           equipment_provided_by?: Database["public"]["Enums"]["equipment_responsibility"]
@@ -3420,9 +3414,9 @@ export type Database = {
           notes_to_client?: string | null
           performer_count?: number | null
           quote_request_id: string
-          quote_status?: Database["public"]["Enums"]["quotation_status"] | null
+          quote_status?: Database["public"]["Enums"]["quotation_status"]
           quoted_amount: number
-          sent_at: string
+          sent_at?: string
           setup_arrival_at?: string | null
           talent_id: string
           talent_net_earnings?: number | null
@@ -3433,8 +3427,7 @@ export type Database = {
         Update: {
           commission_amount?: number | null
           commission_rate_percent?: number
-          counter_used?: boolean
-          created_at?: string | null
+          created_at?: string
           equipment_fee?: number | null
           equipment_notes?: string | null
           equipment_provided_by?: Database["public"]["Enums"]["equipment_responsibility"]
@@ -3443,7 +3436,7 @@ export type Database = {
           notes_to_client?: string | null
           performer_count?: number | null
           quote_request_id?: string
-          quote_status?: Database["public"]["Enums"]["quotation_status"] | null
+          quote_status?: Database["public"]["Enums"]["quotation_status"]
           quoted_amount?: number
           sent_at?: string
           setup_arrival_at?: string | null
@@ -3685,35 +3678,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles_users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      talent_hearts: {
-        Row: {
-          created_at: string
-          id: string
-          talent_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          talent_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          talent_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "talent_hearts_talent_id_fkey"
-            columns: ["talent_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_talent"
             referencedColumns: ["id"]
           },
         ]
@@ -3972,53 +3936,6 @@ export type Database = {
           },
           {
             foreignKeyName: "Talent_Payout_Transactions_talent_id_fkey"
-            columns: ["talent_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_talent"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      talent_pricing: {
-        Row: {
-          created_at: string
-          currency: string
-          description: string | null
-          duration_minutes: number
-          id: string
-          is_active: boolean
-          label: string
-          price_amount: number
-          talent_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          currency?: string
-          description?: string | null
-          duration_minutes: number
-          id?: string
-          is_active?: boolean
-          label?: string
-          price_amount?: number
-          talent_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          currency?: string
-          description?: string | null
-          duration_minutes?: number
-          id?: string
-          is_active?: boolean
-          label?: string
-          price_amount?: number
-          talent_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "Talent_Pricing_talent_id_fkey"
             columns: ["talent_id"]
             isOneToOne: false
             referencedRelation: "profiles_talent"
@@ -4419,12 +4336,7 @@ export type Database = {
         | "cancelled"
         | "converted"
         | "declined"
-      quotation_status:
-        | "pending"
-        | "accepted"
-        | "rejected"
-        | "expired"
-        | "countered"
+      quotation_status: "pending" | "accepted" | "rejected" | "expired"
       quote_decline_reason:
         | "schedule_conflict"
         | "outside_service_area"
@@ -4477,12 +4389,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4506,11 +4418,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4531,11 +4443,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4556,11 +4468,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4573,11 +4485,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4712,13 +4624,7 @@ export const Constants = {
         "converted",
         "declined",
       ],
-      quotation_status: [
-        "pending",
-        "accepted",
-        "rejected",
-        "expired",
-        "countered",
-      ],
+      quotation_status: ["pending", "accepted", "rejected", "expired"],
       quote_decline_reason: [
         "schedule_conflict",
         "outside_service_area",
