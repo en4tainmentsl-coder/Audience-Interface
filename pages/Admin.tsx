@@ -11,10 +11,8 @@ interface AdminQuoteRequest {
   starts_at: string;
   ends_at: string;
   special_requirements?: string;
-  ai_insight?: string;
   profiles_clients?: {
     full_name: string;
-    email: string;
   };
   profiles_talent?: {
     stage_name: string;
@@ -37,10 +35,10 @@ export const Admin: React.FC = () => {
         .select(`
           id,
           status,
-          event_date,
+          starts_at,
+          ends_at,
           special_requirements,
-          ai_insight,
-          profiles_clients (full_name, email),
+          profiles_clients (full_name),
           profiles_talent (stage_name)
         `)
         .order('created_at', { ascending: false });
@@ -180,8 +178,7 @@ export const Admin: React.FC = () => {
                     {filteredBookings.map((booking: AdminQuoteRequest) => (
                       <tr key={booking.id} className={`hover:bg-white/5 transition-colors cursor-pointer ${selectedBooking?.id === booking.id ? 'bg-brand-purple/10' : ''}`} onClick={() => setSelectedBooking(booking)} id={`row-${booking.id}`}>
                         <td className="px-6 py-4">
-                          <div className="text-white font-bold">{booking.profiles_clients?.full_name || 'Anonymous'}</div>
-                          <div className="text-gray-500 text-xs">{booking.profiles_clients?.email}</div>
+                        <div className="text-white font-bold">{booking.profiles_clients?.full_name || 'Anonymous'}</div>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-300">
                           {new Date(booking.starts_at).toLocaleDateString('en-GB', { timeZone: 'Asia/Colombo' })}
@@ -246,7 +243,7 @@ export const Admin: React.FC = () => {
                       <span className="text-xs font-black text-brand-purple uppercase tracking-widest">AI Routing Suggestion</span>
                     </div>
                     <p className="text-white text-sm leading-relaxed mb-4">
-                      {selectedBooking.ai_insight || "AI analysis pending..."}
+                      {selectedBooking.special_requirements || "No special requirements provided."}
                     </p>
                     <div className="flex gap-2">
                        <button 
