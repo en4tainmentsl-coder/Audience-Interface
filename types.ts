@@ -21,15 +21,6 @@ export interface Artist {
   is_featured?: boolean;
 }
 
-export interface RecentPerformance {
-  id: string;
-  artistId: string;
-  artistName: string;
-  date: string;
-  venue: string;
-  imageUrl: string;
-}
-
 export interface Quote {
   id: string;
   talent_id: string;
@@ -52,12 +43,11 @@ export interface QuoteRequest {
   id: string;
   venue_id: string;
   event_type: string;
-  event_date: string;
-  start_time: string;
+  starts_at: string;
+  ends_at: string;
   duration_hours: number;
   budget_min: number;
   budget_max: number;
-  currency?: string;
   status: string;
   special_requirements?: string;
   quotes?: Quote[];
@@ -82,9 +72,8 @@ export interface Payment {
 export interface Booking {
   id: string;
   venue_id: string;
-  event_date: string;
-  start_time: string;
-  end_time: string;
+  starts_at: string;
+  ends_at: string;
   booking_status: string;
   agreed_gross_amount: number;
   currency: string;
@@ -102,18 +91,9 @@ export interface Booking {
   payments?: Payment[];
   reviews_star?: {
     rating: number;
-    overall_rating: number;
     comment?: string;
     created_at: string;
   }[];
-}
-
-export interface Notification {
-  id: string;
-  user_id: string;
-  message_preview: string;
-  send_at: string;
-  is_read: boolean;
 }
 
 export interface Message {
