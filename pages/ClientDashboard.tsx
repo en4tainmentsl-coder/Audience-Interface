@@ -80,7 +80,6 @@ export const ClientDashboard: React.FC = () => {
           id,
           starts_at,
           booking_status,
-          location,
           profiles_talent (stage_name, profile_photo_url),
           profiles_venues (name_of_venue, name_of_location)
         `)
