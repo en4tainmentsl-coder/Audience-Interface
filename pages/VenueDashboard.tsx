@@ -80,7 +80,7 @@ interface BookingQuote {
 }
 
 interface QuoteRequest extends QuoteRequestRow {
-  quotes?: BookingQuote[];
+  quotes?: BookingQuote | null;
 }
 
 interface BookingPayment {
@@ -455,7 +455,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
   const stats = {
     activeBookings: upcomingBookings.filter(b => ['confirmed', 'pending'].includes(b.booking_status)).length,
     pendingQuotes: quoteRequests.filter(r => r.status === 'open').length + 
-                   quoteRequests.flatMap(r => r.quotes || []).filter(q => q.quote_status === 'pending').length,
+                   quoteRequests.filter(r => r.quotes?.quote_status === 'pending').length,
     unreadMessages: unreadMessages.length,
     nextPerformance: upcomingBookings.find(b => b.booking_status === 'confirmed') 
       ? `${lkDate(upcomingBookings.find(b => b.booking_status === 'confirmed')!.starts_at)} @ ${lkTime(upcomingBookings.find(b => b.booking_status === 'confirmed')!.starts_at)}`
@@ -740,14 +740,14 @@ if (data) venueProfile = data as unknown as VenueProfile;
                           </div>
 
                           <div className="space-y-4">
-                            <h5 className="text-[10px] font-black uppercase tracking-widest text-white mb-4">Quotes Received ({req.quotes?.length || 0})</h5>
-                            {(!req.quotes || req.quotes.length === 0) ? (
+                            <h5 className="text-[10px] font-black uppercase tracking-widest text-white mb-4">Quotes Received ({req.quotes ? 1 : 0})</h5>
+                            {!req.quotes ? (
                               <div className="flex items-center gap-3 text-gray-500 italic text-sm">
                                 <div className="w-2 h-2 rounded-full bg-brand-purple animate-ping" />
                                 Awaiting responses from talent...
                               </div>
                             ) : (
-                              req.quotes.map(quote => (
+                              ((quote: BookingQuote) => (
                                 <div key={quote.id} className="bg-brand-dark p-6 rounded-xl border border-white/5 flex flex-col md:flex-row justify-between gap-6 hover:border-brand-purple/20 transition-all">
                                   <div className="flex gap-4">
                                     <img 
@@ -811,7 +811,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                                     </div>
                                   </div>
                                 </div>
-                              ))
+                              ))(req.quotes)
                             )}
                           </div>
                         </div>

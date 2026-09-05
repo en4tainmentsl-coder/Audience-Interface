@@ -50,7 +50,7 @@ export interface QuoteRequest {
   budget_max: number;
   status: string;
   special_requirements?: string;
-  quotes?: Quote[];
+  quotes?: Quote | null;
 }
 
 export interface Contract {
