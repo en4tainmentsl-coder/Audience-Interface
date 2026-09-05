@@ -1,0 +1,36 @@
+-- Disable SSCL and VAT for v1.
+--
+-- WHY
+--   REAP Holdings (Pvt) Ltd is not registered for VAT or SSCL. An unregistered
+--   person may not lawfully charge either. Tax is therefore priced at zero
+--   until registration, and the schema is left fully intact for the day it
+--   switches on.
+--
+-- HOW THIS WORKS
+--   compute_quote_pricing does NOT hardcode the tax rates. It reads
+--   NEW.sscl_rate_percent and NEW.vat_rate_percent off the quote row, which
+--   carry these defaults. Zeroing the defaults zeroes the tax with no change
+--   to the function.
+--
+--   Because the rate is pinned per row, this is self-versioning: every quote
+--   records the rate it was priced at. Flipping the defaults back later makes
+--   NEW quotes taxed while historical ones keep the 0.00 they were sold at.
+--   No backfill, no reprice, no ambiguity in the ledger.
+--
+-- THRESHOLDS (as at 2026-09-05 -- verify before reversing, they move often)
+--   SSCL  Rs. 9 Mn/quarter  or Rs. 36 Mn/four quarters. Rate 2.50.
+--         SSCL (Amendment) Act No. 10 of 2026, effective 1 July 2026.
+--   VAT   Rs. 15 Mn/period  or Rs. 60 Mn/twelve months. Rate 18.00.
+--         VAT (Amendment) Act No. 14 of 2026 KEPT this; the proposed cut to
+--         Rs. 36 Mn was dropped before enactment.
+--   The two have diverged: SSCL bites first. Reverse them independently.
+--
+-- TO REVERSE (one tax at a time)
+--   ALTER TABLE public.quotes ALTER COLUMN sscl_rate_percent SET DEFAULT 2.50;
+--   ALTER TABLE public.quotes ALTER COLUMN vat_rate_percent  SET DEFAULT 18.00;
+--
+-- Monitoring task: 6hR3g8WrH3GW7VqX (quarterly).
+-- Money model:     6hQpgHxVX8GMh3fX.
+
+ALTER TABLE public.quotes ALTER COLUMN sscl_rate_percent SET DEFAULT 0.00;
+ALTER TABLE public.quotes ALTER COLUMN vat_rate_percent  SET DEFAULT 0.00;
