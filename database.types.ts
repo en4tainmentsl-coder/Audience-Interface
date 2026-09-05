@@ -228,6 +228,14 @@ export type Database = {
           bank_charge_amount: number
           base_amount: number
           booking_status: Database["public"]["Enums"]["booking_status"]
+          cancellation_fee_amount: number
+          cancellation_note: string | null
+          cancellation_reason:
+            | Database["public"]["Enums"]["cancellation_reason"]
+            | null
+          cancelled_at: string | null
+          cancelled_by_role: Database["public"]["Enums"]["user_role"] | null
+          cancelled_by_user_id: string | null
           client_total_amount: number
           client_user_id: string
           commission_amount: number
@@ -248,9 +256,11 @@ export type Database = {
           payment_advanced: boolean
           payment_advanced_at: string | null
           quote_id: string
+          refund_due_amount: number
           sscl_amount: number
           sscl_rate_percent: number | null
           starts_at: string
+          talent_compensation_amount: number
           talent_fee_amount: number
           talent_id: string
           talent_payout_amount: number | null
@@ -264,6 +274,14 @@ export type Database = {
           bank_charge_amount?: number
           base_amount?: number
           booking_status?: Database["public"]["Enums"]["booking_status"]
+          cancellation_fee_amount?: number
+          cancellation_note?: string | null
+          cancellation_reason?:
+            | Database["public"]["Enums"]["cancellation_reason"]
+            | null
+          cancelled_at?: string | null
+          cancelled_by_role?: Database["public"]["Enums"]["user_role"] | null
+          cancelled_by_user_id?: string | null
           client_total_amount?: number
           client_user_id: string
           commission_amount?: number
@@ -284,9 +302,11 @@ export type Database = {
           payment_advanced?: boolean
           payment_advanced_at?: string | null
           quote_id: string
+          refund_due_amount?: number
           sscl_amount?: number
           sscl_rate_percent?: number | null
           starts_at: string
+          talent_compensation_amount?: number
           talent_fee_amount?: number
           talent_id: string
           talent_payout_amount?: number | null
@@ -300,6 +320,14 @@ export type Database = {
           bank_charge_amount?: number
           base_amount?: number
           booking_status?: Database["public"]["Enums"]["booking_status"]
+          cancellation_fee_amount?: number
+          cancellation_note?: string | null
+          cancellation_reason?:
+            | Database["public"]["Enums"]["cancellation_reason"]
+            | null
+          cancelled_at?: string | null
+          cancelled_by_role?: Database["public"]["Enums"]["user_role"] | null
+          cancelled_by_user_id?: string | null
           client_total_amount?: number
           client_user_id?: string
           commission_amount?: number
@@ -320,9 +348,11 @@ export type Database = {
           payment_advanced?: boolean
           payment_advanced_at?: string | null
           quote_id?: string
+          refund_due_amount?: number
           sscl_amount?: number
           sscl_rate_percent?: number | null
           starts_at?: string
+          talent_compensation_amount?: number
           talent_fee_amount?: number
           talent_id?: string
           talent_payout_amount?: number | null
@@ -332,6 +362,13 @@ export type Database = {
           venue_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "bookings_cancelled_by_user_id_fkey"
+            columns: ["cancelled_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "Bookings_client_user_id_fkey"
             columns: ["client_user_id"]
@@ -2779,11 +2816,13 @@ export type Database = {
         Row: {
           authorization_code: string | null
           authorization_code_expires_at: string | null
+          bank_charge_amount: number
           booking_id: string
           commission_portion: number
+          created_at: string
           currency: string
           gateway_fee: number
-          gateway_order_id: string
+          gateway_order_id: string | null
           gateway_transaction_id: string | null
           gross_amount: number
           id: string
@@ -2797,39 +2836,49 @@ export type Database = {
           payment_status: Database["public"]["Enums"]["payments_status"]
           payment_type: Database["public"]["Enums"]["payments_types"]
           platform_revenue: number
+          sscl_amount: number
           transaction_reference: string | null
+          updated_at: string
+          vat_amount: number
         }
         Insert: {
           authorization_code?: string | null
           authorization_code_expires_at?: string | null
+          bank_charge_amount?: number
           booking_id: string
           commission_portion: number
+          created_at?: string
           currency?: string
           gateway_fee?: number
-          gateway_order_id?: string
+          gateway_order_id?: string | null
           gateway_transaction_id?: string | null
           gross_amount: number
           id?: string
           is_pre_approved?: boolean
           net_to_talent: number
           paid_at?: string | null
-          payer_user_id?: string
+          payer_user_id: string
           payment_flow: Database["public"]["Enums"]["payments_flow"]
           payment_gateway_provider: string
           payment_method: Database["public"]["Enums"]["payments_methods"]
           payment_status: Database["public"]["Enums"]["payments_status"]
           payment_type: Database["public"]["Enums"]["payments_types"]
           platform_revenue: number
+          sscl_amount?: number
           transaction_reference?: string | null
+          updated_at?: string
+          vat_amount?: number
         }
         Update: {
           authorization_code?: string | null
           authorization_code_expires_at?: string | null
+          bank_charge_amount?: number
           booking_id?: string
           commission_portion?: number
+          created_at?: string
           currency?: string
           gateway_fee?: number
-          gateway_order_id?: string
+          gateway_order_id?: string | null
           gateway_transaction_id?: string | null
           gross_amount?: number
           id?: string
@@ -2843,7 +2892,10 @@ export type Database = {
           payment_status?: Database["public"]["Enums"]["payments_status"]
           payment_type?: Database["public"]["Enums"]["payments_types"]
           platform_revenue?: number
+          sscl_amount?: number
           transaction_reference?: string | null
+          updated_at?: string
+          vat_amount?: number
         }
         Relationships: [
           {
@@ -3498,7 +3550,7 @@ export type Database = {
           {
             foreignKeyName: "Quotes_quote_request_id_fkey"
             columns: ["quote_request_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "quote_requests"
             referencedColumns: ["id"]
           },
@@ -4230,6 +4282,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_quote_and_create_booking: {
+        Args: {
+          p_client_user_id: string
+          p_message?: string
+          p_quote_id: string
+        }
+        Returns: string
+      }
       apply_talent_rating_delta: {
         Args: {
           p_count_delta: number
@@ -4309,6 +4369,29 @@ export type Database = {
         | "cancelled"
         | "completed"
         | "disputed"
+      cancellation_reason:
+        | "event_cancelled"
+        | "event_postponed"
+        | "venue_unavailable"
+        | "budget_withdrawn"
+        | "booked_alternative_talent"
+        | "talent_unresponsive"
+        | "details_not_agreed"
+        | "created_in_error"
+        | "client_other"
+        | "illness_or_injury"
+        | "family_emergency"
+        | "double_booked"
+        | "transport_failure"
+        | "equipment_failure"
+        | "band_member_unavailable"
+        | "event_terms_changed"
+        | "safety_concern"
+        | "talent_other"
+        | "fraud_or_policy_violation"
+        | "payment_not_received"
+        | "duplicate_or_test"
+        | "admin_other"
       client_approval_type:
         | "credit_card"
         | "deferred_payment"
@@ -4592,6 +4675,30 @@ export const Constants = {
         "cancelled",
         "completed",
         "disputed",
+      ],
+      cancellation_reason: [
+        "event_cancelled",
+        "event_postponed",
+        "venue_unavailable",
+        "budget_withdrawn",
+        "booked_alternative_talent",
+        "talent_unresponsive",
+        "details_not_agreed",
+        "created_in_error",
+        "client_other",
+        "illness_or_injury",
+        "family_emergency",
+        "double_booked",
+        "transport_failure",
+        "equipment_failure",
+        "band_member_unavailable",
+        "event_terms_changed",
+        "safety_concern",
+        "talent_other",
+        "fraud_or_policy_violation",
+        "payment_not_received",
+        "duplicate_or_test",
+        "admin_other",
       ],
       client_approval_type: [
         "credit_card",
