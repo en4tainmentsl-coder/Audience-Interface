@@ -885,7 +885,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                               <StatusBadge status={booking.booking_status} />
                               <div className="text-right">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Gross Amount</p>
-                                <p className="text-lg font-black text-white">{booking.agreed_gross_amount} {booking.currency}</p>
+                                <p className="text-lg font-black text-white">{booking.client_total_amount} {booking.currency}</p>
                               </div>
                             </div>
                             <div className="flex flex-wrap justify-end gap-2">
@@ -997,7 +997,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                               </div>
                             </td>
                             <td className="p-4 text-sm text-gray-400">Corporate Event</td>
-                            <td className="p-4 text-sm font-black text-brand-lime">{b.agreed_gross_amount} {b.currency}</td>
+                            <td className="p-4 text-sm font-black text-brand-lime">{b.client_total_amount} {b.currency}</td>
                             <td className="p-4">
                               <button className="text-[10px] font-black uppercase tracking-widest text-brand-purple hover:text-brand-pink transition-colors">View Details</button>
                             </td>
