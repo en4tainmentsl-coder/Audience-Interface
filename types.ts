@@ -75,7 +75,7 @@ export interface Booking {
   starts_at: string;
   ends_at: string;
   booking_status: string;
-  agreed_gross_amount: number;
+  client_total_amount: number;
   currency: string;
   message_to_talent?: string;
   profiles_talent?: {
