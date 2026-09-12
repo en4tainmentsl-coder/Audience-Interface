@@ -42,9 +42,6 @@ const EVENT_TYPES: { value: EventType; label: string }[] = [
 const LK_UTC_OFFSET = '+05:30';
 
 interface QuoteFormData {
-  name: string;
-  email: string;
-  phone: string;
   date: string;
   startTime: string;
   endTime: string;
@@ -69,9 +66,6 @@ export const RequestQuote: React.FC = () => {
   const preSelectedTalentId: string | null = searchParams.get('artistId');
 
   const [formData, setFormData] = useState<QuoteFormData>({
-    name: '',
-    email: '',
-    phone: '',
     date: '',
     startTime: '',
     endTime: '',
@@ -326,49 +320,7 @@ export const RequestQuote: React.FC = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* NOTE: name / email / phone are collected but not persisted —
-                quote_requests has no such columns. Either wire them to
-                profiles_clients or remove the fields. Tracked separately. */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-xs font-black text-brand-lime uppercase tracking-widest">Full Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  required
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Saman Perera"
-                  className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all placeholder:text-gray-600"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-black text-brand-lime uppercase tracking-widest">Email Address</label>
-                <input
-                  type="email"
-                  name="email"
-                  required
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="saman@en4tainment.com"
-                  className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all placeholder:text-gray-600"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-xs font-black text-brand-lime uppercase tracking-widest">Phone Number</label>
-                <input
-                  type="tel"
-                  name="phone"
-                  required
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="+94 (77) 718-6162"
-                  className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all placeholder:text-gray-600"
-                />
-              </div>
               <div className="space-y-2">
                 <label className="text-xs font-black text-brand-lime uppercase tracking-widest">District</label>
                 <select
@@ -384,24 +336,23 @@ export const RequestQuote: React.FC = () => {
                   ))}
                 </select>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-black text-brand-lime uppercase tracking-widest">Listed Venue (optional)</label>
-              <select
+                <div className="space-y-2">
+                <label className="text-xs font-black text-brand-lime uppercase tracking-widest">Listed Venue (optional)</label>
+                <select
                 name="venueId"
                 value={formData.venueId}
                 onChange={handleChange}
                 disabled={venueOptions.length === 0}
                 className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all appearance-none cursor-pointer disabled:opacity-50"
-              >
+                >
                 <option value="">
                   {venueOptions.length === 0 ? 'No listed venues yet' : 'Not at a listed venue'}
                 </option>
                 {venueOptions.map((v) => (
                   <option key={v.id} value={v.id}>{v.name_of_venue} — {v.address_city}</option>
                 ))}
-              </select>
+                </select>
+              </div>
             </div>
 
             <div className="space-y-2">
