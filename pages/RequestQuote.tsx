@@ -84,6 +84,8 @@ export const RequestQuote: React.FC = () => {
 
   const [authChecked, setAuthChecked] = useState<boolean>(false);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
@@ -91,10 +93,21 @@ export const RequestQuote: React.FC = () => {
 
   // Auth gate — login is required to submit a quote request.
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    async function checkAuth() {
+      const { data: { user } } = await supabase.auth.getUser();
       setIsLoggedIn(!!user);
+      if (user) {
+        setUserId(user.id);
+        const { data: profile } = await supabase
+          .from('profiles_users')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        setUserRole(profile?.role || null);
+      }
       setAuthChecked(true);
-    });
+    }
+    checkAuth();
   }, []);
 
   // Live talent list. Only is_public = true rows are visible under RLS to a
@@ -120,21 +133,37 @@ export const RequestQuote: React.FC = () => {
     loadTalent();
   }, []);
 
-  // Approved venues, for events held at a listed venue. Expected to return zero
-  // rows until venues are onboarded — the picker then simply renders as
-  // "Not at a listed venue" and the district selection carries the location.
+  // Venue options depend on WHO is asking, so this waits for the role rather
+  // than firing on mount.
+  //
+  // Clients: any approved venue, as the event location. venue_id stays optional
+  // and the district selection carries the location when none is chosen.
+  //
+  // Venue-role users: ONLY their own approved venues. D-020 rejects a
+  // venue-role insert with venue_id NULL at the RLS layer, so the picker is
+  // preselected and locked. A venue user whose venue is not yet approved gets
+  // zero rows and cannot file at all — that is deliberate: nothing can be
+  // booked at a venue until the venue is approved.
   useEffect(() => {
+    if (!authChecked || !isLoggedIn) return;
     async function loadVenues() {
-      const { data, error } = await supabase
+      let q = supabase
         .from('profiles_venues')
         .select('id, name_of_venue, address_city, latitude, longitude')
-        .eq('approval_status', 'approved')
-        .order('name_of_venue');
+        .eq('approval_status', 'approved');
 
-      if (!error && data) setVenueOptions(data as VenueOption[]);
+      if (userRole === 'venue' && userId) q = q.eq('user_id', userId);
+
+      const { data, error } = await q.order('name_of_venue');
+      if (!error && data) {
+        setVenueOptions(data as VenueOption[]);
+        if (userRole === 'venue' && data.length > 0) {
+          setFormData(prev => ({ ...prev, venueId: prev.venueId || data[0].id }));
+        }
+      }
     }
     loadVenues();
-  }, []);
+  }, [authChecked, isLoggedIn, userRole, userId]);
 
   useEffect(() => {
     if (preSelectedTalentId) {
@@ -319,6 +348,15 @@ export const RequestQuote: React.FC = () => {
             </div>
           )}
 
+          {userRole === 'venue' && venueOptions.length === 0 && (
+            <div className="mb-6 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-amber-200">
+              <p className="text-sm">
+                Your venue is not approved yet. Quote requests can only be filed
+                once your venue has been approved.
+              </p>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
@@ -336,21 +374,26 @@ export const RequestQuote: React.FC = () => {
                   ))}
                 </select>
               </div>
-                <div className="space-y-2">
-                <label className="text-xs font-black text-brand-lime uppercase tracking-widest">Listed Venue (optional)</label>
+              <div className="space-y-2">
+                <label className="text-xs font-black text-brand-lime uppercase tracking-widest">
+                  {userRole === 'venue' ? 'Your Venue' : 'Listed Venue (optional)'}
+                </label>
                 <select
-                name="venueId"
-                value={formData.venueId}
-                onChange={handleChange}
-                disabled={venueOptions.length === 0}
-                className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all appearance-none cursor-pointer disabled:opacity-50"
+                  name="venueId"
+                  value={formData.venueId}
+                  onChange={handleChange}
+                  required={userRole === 'venue'}
+                  disabled={venueOptions.length === 0 || userRole === 'venue'}
+                  className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all appearance-none cursor-pointer disabled:opacity-50"
                 >
-                <option value="">
-                  {venueOptions.length === 0 ? 'No listed venues yet' : 'Not at a listed venue'}
-                </option>
-                {venueOptions.map((v) => (
-                  <option key={v.id} value={v.id}>{v.name_of_venue} — {v.address_city}</option>
-                ))}
+                  {userRole !== 'venue' && (
+                    <option value="">
+                      {venueOptions.length === 0 ? 'No listed venues yet' : 'Not at a listed venue'}
+                    </option>
+                  )}
+                  {venueOptions.map((v) => (
+                    <option key={v.id} value={v.id}>{v.name_of_venue} — {v.address_city}</option>
+                  ))}
                 </select>
               </div>
             </div>
