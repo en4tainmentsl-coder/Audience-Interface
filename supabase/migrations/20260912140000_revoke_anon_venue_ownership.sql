@@ -1,0 +1,16 @@
+-- 20260908190000 intended venue_is_owned_by_caller to be authenticated-only,
+-- but shipped only REVOKE ALL ... FROM PUBLIC. Supabase's default privileges
+-- grant EXECUTE on new public functions to anon, authenticated and
+-- service_role as EXPLICIT ROLE grants, which FROM PUBLIC does not remove.
+-- Verified live: anon retained EXECUTE.
+--
+-- Harmless in practice -- auth.uid() is NULL for anon, so the function returns
+-- false for every input and cannot be used as an oracle. Fixed because the
+-- code asserted one thing and the database did another.
+--
+-- The 11 trigger-returning SECURITY DEFINER functions also carry anon grants
+-- and are deliberately LEFT ALONE: a plpgsql trigger function called outside
+-- trigger context raises immediately, so there is nothing to gain.
+-- get_my_role() is likewise left alone -- it returns NULL for anon and four
+-- RLS policies depend on it.
+REVOKE EXECUTE ON FUNCTION public.venue_is_owned_by_caller(uuid) FROM anon;
