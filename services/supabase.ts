@@ -1,16 +1,20 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../database.types';
 
-const supabaseUrl: string | undefined = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey: string | undefined = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Only initialize if credentials are provided to prevent crash on startup
-export const supabase: SupabaseClient<Database> = (supabaseUrl && supabaseAnonKey)
-  ? createClient<Database>(supabaseUrl, supabaseAnonKey)
-  : new Proxy({}, {
-      get: () => {
-        return () => {
-          throw new Error("Supabase URL and Anon Key are required. Please configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment variables.");
-        };
-      }
-    }) as unknown as SupabaseClient<Database>;
+// Fail at module load, not at first use. A deploy with missing env vars must
+// refuse to start rather than render an app whose every data call throws
+// inside a caller's catch block and shows an empty page instead.
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    'Missing Supabase configuration. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY ' +
+    'in the environment (Cloudflare Pages > Settings > Environment variables, or .env for local dev).'
+  );
+}
+
+export const supabase: SupabaseClient<Database> = createClient<Database>(
+  supabaseUrl,
+  supabaseAnonKey
+);
