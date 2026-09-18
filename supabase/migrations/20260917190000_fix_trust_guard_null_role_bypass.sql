@@ -1,59 +1,69 @@
 -- 20260917190000_fix_trust_guard_null_role_bypass.sql
 --
--- Closes a privilege bypass in five trust-field guards.
+-- Makes five trust-field guards fail closed when get_my_role() returns NULL.
 --
--- THE BUG
--- -------
--- get_my_role() is:
---     SELECT role::text FROM public.profiles_users WHERE id = auth.uid() LIMIT 1;
--- It returns NULL — not an error — when the caller holds a valid session but has
--- no profiles_users row.
+-- SEVERITY: LATENT, NOT LIVE. An earlier version of this comment block, and the
+-- description of PR #113, claimed a live exploitable bypass and included a worked
+-- exploit. That was wrong and is corrected here. See the PR thread for the full
+-- correction. Tracked as Todoist 6hX2G6fqHXXRWVhX.
 --
--- Five guards gate their pins as:
+-- THE DEFECT
+-- ----------
+-- get_my_role() returns NULL - not an error - when the caller holds a valid session
+-- but has no profiles_users row.
+--
+-- Five guards gated their pins as:
 --     IF auth.uid() IS NOT NULL AND get_my_role() <> 'admin' THEN
+-- With a NULL role, `NULL <> 'admin'` is NULL, not TRUE, so the IF does not fire and
+-- the entire guard body is skipped.
 --
--- With a NULL role, `NULL <> 'admin'` evaluates to NULL, which is not TRUE, so the
--- IF does not fire and THE ENTIRE GUARD BODY IS SKIPPED. Every column those guards
--- exist to pin becomes freely writable by the caller.
+-- The idiom split is the point worth remembering:
+--   IF auth.uid() IS NULL OR get_my_role() = 'admin' THEN RETURN NEW;
+--     -> fails CLOSED on NULL. Correct. Used by enforce_user_trust_fields,
+--        enforce_message_writes, enforce_payout_account_trust_fields. Not touched.
+--   IF auth.uid() IS NOT NULL AND get_my_role() <> 'admin' THEN
+--     -> fails OPEN on NULL. Was used by the five functions below.
 --
--- Guards written the other way round — `IF auth.uid() IS NULL OR get_my_role() =
--- 'admin' THEN RETURN NEW;` — are unaffected: NULL there fails to early-return, so
--- the guard still runs. enforce_user_trust_fields, enforce_message_writes and
--- enforce_payout_account_trust_fields are already correct and are NOT touched here.
+-- WHY IT WAS NOT EXPLOITABLE
+-- --------------------------
+-- Every surface these five guards protect was already masked:
 --
--- WHY IT IS LIVE NOW
--- ------------------
--- Nothing creates a profiles_users row automatically. There is no trigger on
--- auth.users and no signup-handler function anywhere in the database — verified
--- 2026-09-17. Every profiles_users row to date was created by hand.
+--   profiles_talent    FK user_id -> profiles_users(id)
+--   profiles_clients   FK user_id -> profiles_users(id)
+--   profiles_venues    FK user_id -> profiles_users(id) ON DELETE CASCADE
+--   quotes             no INSERT policy for `authenticated` at all; service_role only
 --
--- Google OAuth went live 2026-09-17. The first OAuth user (adb4ab47-944b-4ea1-9016
--- -2d603533c201) holds a session with NO profiles_users row, and is therefore in the
--- bypassing state right now. So will every subsequent OAuth user until an onboarding
--- path exists.
+-- enforce_featured_requires_admin sits on profiles_talent, so the same FK covers it.
 --
--- Worked exploit, before this migration:
---   INSERT INTO profiles_talent (user_id, full_name, primary_genre_id,
---                                is_public, is_verified, approval_status)
---   VALUES (auth.uid(), 'x', <any genre>, true, true, 'approved');
--- talent_profile_manage_own grants ALL to authenticated WHERE auth.uid() = user_id,
--- and talent_select_public exposes any row WHERE is_public = true to anon. The
--- result is a self-approved, self-verified, publicly readable talent profile.
+-- A caller with no profiles_users row cannot insert into any of them - verified
+-- 2026-09-17 through a real authenticated session, which returned
+--     409  23503  Key is not present in table "profiles_users".
+-- A caller who has a profiles_users row returns a non-NULL role, so the guard fires
+-- normally. The NULL window is unreachable on every guarded surface.
+--
+-- It becomes live if any of those FKs is dropped, if an INSERT policy is added to
+-- quotes for `authenticated`, or if a new guard uses the failing-open idiom on a
+-- table without that FK. None of those masks is documented as load-bearing, which is
+-- the reason to fix the guards rather than rely on them.
 --
 -- THE FIX
 -- -------
 --     get_my_role() IS DISTINCT FROM 'admin'
---
 -- NULL IS DISTINCT FROM 'admin' is TRUE, so the guard fires for a roleless caller.
--- Behaviour is unchanged for every real role: 'talent', 'client' and 'venue' were
--- already distinct from 'admin', and 'admin' still bypasses.
+-- No behaviour change for any real role.
 --
 -- Function bodies below are reproduced verbatim from pg_get_functiondef() read live
 -- on 2026-09-17. The ONLY change in each is the gate comparison.
 --
+-- VERIFIED
+-- --------
+-- Regression tested 2026-09-18 through a real session with role = 'talent'. An
+-- insert requesting is_public true, is_verified true, approval_status 'approved'
+-- landed as false / false / draft, with profile_status pending, rating 0.00,
+-- is_featured false. The replacement did not break the guards that already worked.
+--
 -- Related: D-023 records all four profile guards as compliant. That audit verified
--- the guards exist and pin the correct columns; it did not test them with a NULL
--- role. See EN4_DECISION_REGISTER Standing Corrections.
+-- they exist and pin the correct columns; it did not test them with a NULL role.
 
 BEGIN;
 
@@ -274,18 +284,17 @@ COMMIT;
 --
 -- 1. No trigger is created or dropped. CREATE OR REPLACE FUNCTION leaves every
 --    existing trigger binding intact; the a_-prefixed trigger names and their
---    ordering are unchanged.
+--    ordering are unchanged. Confirmed after apply: 1 trigger bound per function.
 --
 -- 2. Function privileges are NOT re-granted or re-revoked. CREATE OR REPLACE
---    preserves the existing ACL. Per D-026, verify pg_proc.proacl afterwards
---    anyway if anything looks off — but no change is expected.
+--    preserves the existing ACL. Confirmed unchanged after apply, including the
+--    pre-existing anon=X / PUBLIC=X grants on four of the five, which are the
+--    D-026 pattern for SECURITY DEFINER trigger functions and are left alone.
 --
 -- 3. This does NOT fix talent_select_public, which reads
 --      USING (is_public = true)
---    and checks neither approval_status nor is_verified. That remains open. This
---    migration removes the ability to SET is_public without admin rights, which
---    makes that policy far harder to abuse, but it does not make it correct.
+--    and checks neither approval_status nor is_verified. That remains open.
 --
--- 4. This does NOT create profiles_users rows. The underlying condition — a valid
---    session with no profile row — still exists and still needs an onboarding path.
---    This migration makes that state safe rather than eliminating it.
+-- 4. This does NOT create profiles_users rows. A session with no profiles_users row
+--    still cannot create any profile row - the FKs above block it - so that state is
+--    a functional gap in onboarding, not a security one.
