@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       audit_log: {
@@ -544,6 +519,59 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "profiles_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_submissions: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string
+          handled_at: string | null
+          handled_by: string | null
+          id: string
+          last_name: string
+          message: string
+          notified_at: string | null
+          notify_error: string | null
+          submitter_ip: unknown
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          last_name: string
+          message: string
+          notified_at?: string | null
+          notify_error?: string | null
+          submitter_ip?: unknown
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          last_name?: string
+          message?: string
+          notified_at?: string | null
+          notify_error?: string | null
+          submitter_ip?: unknown
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_submissions_handled_by_fkey"
+            columns: ["handled_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_users"
             referencedColumns: ["id"]
           },
         ]
@@ -2593,6 +2621,51 @@ export type Database = {
           },
         ]
       }
+      email_deliveries: {
+        Row: {
+          bounce_reason: string | null
+          bounce_type: string | null
+          bounced_at: string | null
+          complained_at: string | null
+          created_at: string
+          delayed_at: string | null
+          delivered_at: string | null
+          last_event_at: string
+          recipient: string | null
+          resend_id: string
+          sent_at: string | null
+          template: string | null
+        }
+        Insert: {
+          bounce_reason?: string | null
+          bounce_type?: string | null
+          bounced_at?: string | null
+          complained_at?: string | null
+          created_at?: string
+          delayed_at?: string | null
+          delivered_at?: string | null
+          last_event_at?: string
+          recipient?: string | null
+          resend_id: string
+          sent_at?: string | null
+          template?: string | null
+        }
+        Update: {
+          bounce_reason?: string | null
+          bounce_type?: string | null
+          bounced_at?: string | null
+          complained_at?: string | null
+          created_at?: string
+          delayed_at?: string | null
+          delivered_at?: string | null
+          last_event_at?: string
+          recipient?: string | null
+          resend_id?: string
+          sent_at?: string | null
+          template?: string | null
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           booking_id: string
@@ -2812,6 +2885,65 @@ export type Database = {
           },
         ]
       }
+      package_sets: {
+        Row: {
+          created_at: string
+          effective_from: string
+          id: string
+          note: string | null
+        }
+        Insert: {
+          created_at?: string
+          effective_from: string
+          id?: string
+          note?: string | null
+        }
+        Update: {
+          created_at?: string
+          effective_from?: string
+          id?: string
+          note?: string | null
+        }
+        Relationships: []
+      }
+      packages: {
+        Row: {
+          category: Database["public"]["Enums"]["rate_category"]
+          created_at: string
+          id: string
+          label: string
+          max_minutes: number
+          min_minutes: number
+          set_id: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["rate_category"]
+          created_at?: string
+          id?: string
+          label: string
+          max_minutes: number
+          min_minutes: number
+          set_id: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["rate_category"]
+          created_at?: string
+          id?: string
+          label?: string
+          max_minutes?: number
+          min_minutes?: number
+          set_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "packages_set_id_fkey"
+            columns: ["set_id"]
+            isOneToOne: false
+            referencedRelation: "package_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           authorization_code: string | null
@@ -2917,6 +3049,56 @@ export type Database = {
             columns: ["payer_user_id"]
             isOneToOne: false
             referencedRelation: "profiles_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_range_sets: {
+        Row: {
+          created_at: string
+          effective_from: string
+          id: string
+          note: string | null
+        }
+        Insert: {
+          created_at?: string
+          effective_from: string
+          id?: string
+          note?: string | null
+        }
+        Update: {
+          created_at?: string
+          effective_from?: string
+          id?: string
+          note?: string | null
+        }
+        Relationships: []
+      }
+      price_ranges: {
+        Row: {
+          id: string
+          min_amount: number
+          ordinal: number
+          set_id: string
+        }
+        Insert: {
+          id?: string
+          min_amount: number
+          ordinal: number
+          set_id: string
+        }
+        Update: {
+          id?: string
+          min_amount?: number
+          ordinal?: number
+          set_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_ranges_set_id_fkey"
+            columns: ["set_id"]
+            isOneToOne: false
+            referencedRelation: "price_range_sets"
             referencedColumns: ["id"]
           },
         ]
@@ -3032,11 +3214,13 @@ export type Database = {
           approval_status: Database["public"]["Enums"]["approval_status"]
           base_latitude: number | null
           base_longitude: number | null
+          base_town_id: number | null
           bio: string | null
           cover_photo_public_id: string | null
           cover_photo_url: string | null
           created_at: string
           date_of_birth: string | null
+          deletion_requested_at: string | null
           email: string | null
           en4tainment_profile_id: string | null
           equipment_fee_percent: number
@@ -3055,14 +3239,18 @@ export type Database = {
           optional_location_2: string | null
           optional_location_3: string | null
           optional_location_4: string | null
-          pricing_per_session: number | null
-          pricing_updated_at: string | null
           primary_genre_id: string
           primary_location: string | null
           profile_photo_public_id: string | null
           profile_photo_url: string | null
           profile_status: Database["public"]["Enums"]["talent_status"]
           rating: number | null
+          rejection_note: string | null
+          rejection_reason:
+            | Database["public"]["Enums"]["talent_rejection_reason"]
+            | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           secondary_genre_id: string | null
           short_bio: string | null
           stage_name: string | null
@@ -3078,11 +3266,13 @@ export type Database = {
           approval_status?: Database["public"]["Enums"]["approval_status"]
           base_latitude?: number | null
           base_longitude?: number | null
+          base_town_id?: number | null
           bio?: string | null
           cover_photo_public_id?: string | null
           cover_photo_url?: string | null
           created_at?: string
           date_of_birth?: string | null
+          deletion_requested_at?: string | null
           email?: string | null
           en4tainment_profile_id?: string | null
           equipment_fee_percent?: number
@@ -3101,14 +3291,18 @@ export type Database = {
           optional_location_2?: string | null
           optional_location_3?: string | null
           optional_location_4?: string | null
-          pricing_per_session?: number | null
-          pricing_updated_at?: string | null
           primary_genre_id: string
           primary_location?: string | null
           profile_photo_public_id?: string | null
           profile_photo_url?: string | null
           profile_status?: Database["public"]["Enums"]["talent_status"]
           rating?: number | null
+          rejection_note?: string | null
+          rejection_reason?:
+            | Database["public"]["Enums"]["talent_rejection_reason"]
+            | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           secondary_genre_id?: string | null
           short_bio?: string | null
           stage_name?: string | null
@@ -3124,11 +3318,13 @@ export type Database = {
           approval_status?: Database["public"]["Enums"]["approval_status"]
           base_latitude?: number | null
           base_longitude?: number | null
+          base_town_id?: number | null
           bio?: string | null
           cover_photo_public_id?: string | null
           cover_photo_url?: string | null
           created_at?: string
           date_of_birth?: string | null
+          deletion_requested_at?: string | null
           email?: string | null
           en4tainment_profile_id?: string | null
           equipment_fee_percent?: number
@@ -3147,14 +3343,18 @@ export type Database = {
           optional_location_2?: string | null
           optional_location_3?: string | null
           optional_location_4?: string | null
-          pricing_per_session?: number | null
-          pricing_updated_at?: string | null
           primary_genre_id?: string
           primary_location?: string | null
           profile_photo_public_id?: string | null
           profile_photo_url?: string | null
           profile_status?: Database["public"]["Enums"]["talent_status"]
           rating?: number | null
+          rejection_note?: string | null
+          rejection_reason?:
+            | Database["public"]["Enums"]["talent_rejection_reason"]
+            | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           secondary_genre_id?: string | null
           short_bio?: string | null
           stage_name?: string | null
@@ -3168,10 +3368,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "profiles_talent_base_town_id_fkey"
+            columns: ["base_town_id"]
+            isOneToOne: false
+            referencedRelation: "towns"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "profiles_talent_primary_genre_id_fkey"
             columns: ["primary_genre_id"]
             isOneToOne: false
             referencedRelation: "genres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_talent_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_users"
             referencedColumns: ["id"]
           },
           {
@@ -3204,7 +3418,7 @@ export type Database = {
           email: string
           id: string
           last_login_at: string | null
-          phone: string
+          phone: string | null
           role: string
           status: Database["public"]["Enums"]["user_status"]
         }
@@ -3214,7 +3428,7 @@ export type Database = {
           email?: string
           id: string
           last_login_at?: string | null
-          phone: string
+          phone?: string | null
           role?: string
           status?: Database["public"]["Enums"]["user_status"]
         }
@@ -3224,7 +3438,7 @@ export type Database = {
           email?: string
           id?: string
           last_login_at?: string | null
-          phone?: string
+          phone?: string | null
           role?: string
           status?: Database["public"]["Enums"]["user_status"]
         }
@@ -4112,6 +4326,41 @@ export type Database = {
           },
         ]
       }
+      talent_rates: {
+        Row: {
+          amount: number | null
+          category: Database["public"]["Enums"]["rate_category"]
+          created_at: string
+          id: string
+          rate_updated_at: string | null
+          talent_id: string
+        }
+        Insert: {
+          amount?: number | null
+          category: Database["public"]["Enums"]["rate_category"]
+          created_at?: string
+          id?: string
+          rate_updated_at?: string | null
+          talent_id: string
+        }
+        Update: {
+          amount?: number | null
+          category?: Database["public"]["Enums"]["rate_category"]
+          created_at?: string
+          id?: string
+          rate_updated_at?: string | null
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_rates_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_talent"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       talent_stats: {
         Row: {
           heart_count: number
@@ -4181,6 +4430,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      towns: {
+        Row: {
+          district: string
+          ds_division: string | null
+          id: number
+          label: string
+          latitude: number
+          longitude: number
+          name: string
+          rank: number
+        }
+        Insert: {
+          district: string
+          ds_division?: string | null
+          id: number
+          label: string
+          latitude: number
+          longitude: number
+          name: string
+          rank?: number
+        }
+        Update: {
+          district?: string
+          ds_division?: string | null
+          id?: number
+          label?: string
+          latitude?: number
+          longitude?: number
+          name?: string
+          rank?: number
+        }
+        Relationships: []
       }
       venue_payment_accounts: {
         Row: {
@@ -4279,7 +4561,18 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      scheduled_job_health: {
+        Row: {
+          active: boolean | null
+          failures_7d: number | null
+          jobname: string | null
+          last_failure: string | null
+          last_failure_message: string | null
+          last_success: string | null
+          schedule: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_quote_and_create_booking: {
@@ -4316,6 +4609,13 @@ export type Database = {
       }
       get_my_role: { Args: never; Returns: string }
       get_nic_hmac_key: { Args: never; Returns: string }
+      get_quote_request_client_names: {
+        Args: never
+        Returns: {
+          full_name: string
+          quote_request_id: string
+        }[]
+      }
       get_webhook_secret: { Args: never; Returns: string }
       is_18_or_over: { Args: { dob: string }; Returns: boolean }
       is_talent_available: {
@@ -4327,13 +4627,58 @@ export type Database = {
         }
         Returns: boolean
       }
+      package_for_category: {
+        Args: {
+          p_at?: string
+          p_category: Database["public"]["Enums"]["rate_category"]
+        }
+        Returns: string
+      }
+      price_range_for_amount: {
+        Args: { p_amount: number; p_at?: string }
+        Returns: string
+      }
+      purge_contact_submissions: { Args: never; Returns: number }
+      purge_email_deliveries: { Args: never; Returns: number }
       quote_talent_matches_request: {
         Args: { q_request_id: string; q_talent_id: string }
         Returns: boolean
       }
+      rate_category_for_event_type: {
+        Args: { p_event: Database["public"]["Enums"]["events_type"] }
+        Returns: Database["public"]["Enums"]["rate_category"]
+      }
       recompute_talent_rating_stats: {
         Args: { p_talent_id?: string }
         Returns: number
+      }
+      request_profile_deletion: {
+        Args: { p_user_id: string }
+        Returns: {
+          account_email: string
+          contact_email: string
+          requested_at: string
+          stage_name: string
+          talent_id: string
+        }[]
+      }
+      review_talent: {
+        Args: {
+          p_decision: string
+          p_note?: string
+          p_reason?: Database["public"]["Enums"]["talent_rejection_reason"]
+          p_reviewer: string
+          p_talent_id: string
+        }
+        Returns: {
+          account_email: string
+          contact_email: string
+          stage_name: string
+        }[]
+      }
+      venue_is_owned_by_caller: {
+        Args: { p_venue_id: string }
+        Returns: boolean
       }
     }
     Enums: {
@@ -4423,7 +4768,8 @@ export type Database = {
         | "private"
         | "dinner_service"
         | "lunch_service"
-        | "other"
+        | "club_pub"
+        | "spot_performance"
       kyc_status: "pending" | "submitted" | "verified" | "rejected"
       notifications_channel: "push" | "email" | "sms" | "in_app"
       notifications_type:
@@ -4477,6 +4823,14 @@ export type Database = {
         | "outside_service_area"
         | "event_type_mismatch"
         | "other"
+      rate_category:
+        | "special_events"
+        | "wedding"
+        | "concert"
+        | "club_pub"
+        | "dinner_service"
+        | "lunch_service"
+        | "spot_performance"
       related_entity_type:
         | "talent"
         | "booking"
@@ -4504,6 +4858,13 @@ export type Database = {
         | "live_performance"
         | "press_kit"
         | "document"
+      talent_rejection_reason:
+        | "documents_unclear"
+        | "identity_mismatch"
+        | "incomplete_profile"
+        | "unsuitable_content"
+        | "duplicate_account"
+        | "other"
       talent_status: "pending" | "active" | "suspended" | "inactive"
       talent_type: "solo" | "duo" | "3-piece" | "full band" | "dj"
       user_role: "client" | "venue" | "talent" | "admin"
@@ -4634,9 +4995,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       admin_level: [
@@ -4729,7 +5087,8 @@ export const Constants = {
         "private",
         "dinner_service",
         "lunch_service",
-        "other",
+        "club_pub",
+        "spot_performance",
       ],
       kyc_status: ["pending", "submitted", "verified", "rejected"],
       notifications_channel: ["push", "email", "sms", "in_app"],
@@ -4790,6 +5149,15 @@ export const Constants = {
         "event_type_mismatch",
         "other",
       ],
+      rate_category: [
+        "special_events",
+        "wedding",
+        "concert",
+        "club_pub",
+        "dinner_service",
+        "lunch_service",
+        "spot_performance",
+      ],
       related_entity_type: [
         "talent",
         "booking",
@@ -4820,6 +5188,14 @@ export const Constants = {
         "live_performance",
         "press_kit",
         "document",
+      ],
+      talent_rejection_reason: [
+        "documents_unclear",
+        "identity_mismatch",
+        "incomplete_profile",
+        "unsuitable_content",
+        "duplicate_account",
+        "other",
       ],
       talent_status: ["pending", "active", "suspended", "inactive"],
       talent_type: ["solo", "duo", "3-piece", "full band", "dj"],

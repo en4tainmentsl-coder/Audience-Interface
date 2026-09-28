@@ -24,15 +24,21 @@ interface VenueOption {
 // Mirrors the live `events_type` Postgres enum. Verified against the live DB
 // 2026-08-24 — exact match. Keep in sync manually if the enum is ever altered;
 // there is no runtime introspection of it here.
+// Mirrors the events_type enum. 'other' was removed 2026-09-28 (D-038): every
+// category now has a defined package and a priceable rate, and a client whose
+// event does not fit picks the nearest. Adding a value here without adding it
+// to the enum, or vice versa, breaks quote requests — rate_category_for_event_type
+// raises on an unmapped type rather than silently returning NULL.
 const EVENT_TYPES: { value: EventType; label: string }[] = [
   { value: 'wedding', label: 'Wedding' },
   { value: 'corporate', label: 'Corporate' },
   { value: 'birthday', label: 'Birthday' },
   { value: 'concert', label: 'Concert' },
   { value: 'private', label: 'Private Event' },
+  { value: 'club_pub', label: 'Club or Pub' },
   { value: 'dinner_service', label: 'Dinner Service' },
   { value: 'lunch_service', label: 'Lunch Service' },
-  { value: 'other', label: 'Other' },
+  { value: 'spot_performance', label: 'Spot Performance' },
 ];
 
 // Sri Lanka is UTC+05:30 year-round and observes no DST, so a fixed offset is
