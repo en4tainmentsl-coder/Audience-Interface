@@ -3571,8 +3571,6 @@ export type Database = {
       }
       quote_requests: {
         Row: {
-          budget_max: number | null
-          budget_min: number | null
           client_user_id: string
           created_at: string
           decline_reason:
@@ -3595,8 +3593,6 @@ export type Database = {
           venue_id: string | null
         }
         Insert: {
-          budget_max?: number | null
-          budget_min?: number | null
           client_user_id: string
           created_at?: string
           decline_reason?:
@@ -3619,8 +3615,6 @@ export type Database = {
           venue_id?: string | null
         }
         Update: {
-          budget_max?: number | null
-          budget_min?: number | null
           client_user_id?: string
           created_at?: string
           decline_reason?:
@@ -3680,6 +3674,7 @@ export type Database = {
           gateway_rate_percent: number
           id: string
           notes_to_client: string | null
+          package_id: string | null
           performer_count: number | null
           quote_request_id: string
           quote_status: Database["public"]["Enums"]["quotation_status"]
@@ -3711,6 +3706,7 @@ export type Database = {
           gateway_rate_percent?: number
           id?: string
           notes_to_client?: string | null
+          package_id?: string | null
           performer_count?: number | null
           quote_request_id: string
           quote_status?: Database["public"]["Enums"]["quotation_status"]
@@ -3742,6 +3738,7 @@ export type Database = {
           gateway_rate_percent?: number
           id?: string
           notes_to_client?: string | null
+          package_id?: string | null
           performer_count?: number | null
           quote_request_id?: string
           quote_status?: Database["public"]["Enums"]["quotation_status"]
@@ -3761,6 +3758,13 @@ export type Database = {
           vat_rate_percent?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "quotes_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "Quotes_quote_request_id_fkey"
             columns: ["quote_request_id"]
@@ -4561,6 +4565,15 @@ export type Database = {
       }
     }
     Views: {
+      event_type_packages: {
+        Row: {
+          event_type: Database["public"]["Enums"]["events_type"] | null
+          label: string | null
+          max_minutes: number | null
+          min_minutes: number | null
+        }
+        Relationships: []
+      }
       scheduled_job_health: {
         Row: {
           active: boolean | null
@@ -4572,6 +4585,21 @@ export type Database = {
           schedule: string | null
         }
         Relationships: []
+      }
+      talent_offered_event_types: {
+        Row: {
+          event_type: Database["public"]["Enums"]["events_type"] | null
+          talent_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_rates_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_talent"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
@@ -4590,6 +4618,22 @@ export type Database = {
           p_talent_id: string
         }
         Returns: undefined
+      }
+      calc_equipment_fee: {
+        Args: {
+          p_provided_by: Database["public"]["Enums"]["equipment_responsibility"]
+          p_quoted_amount: number
+          p_talent_id: string
+        }
+        Returns: number
+      }
+      calc_travel_fee: {
+        Args: {
+          p_quote_request_id: string
+          p_quoted_amount: number
+          p_talent_id: string
+        }
+        Returns: Record<string, unknown>
       }
       check_talent_rating_drift: {
         Args: never
@@ -4633,6 +4677,21 @@ export type Database = {
           p_category: Database["public"]["Enums"]["rate_category"]
         }
         Returns: string
+      }
+      preview_quote_pricing: {
+        Args: {
+          p_equipment_provided_by?: Database["public"]["Enums"]["equipment_responsibility"]
+          p_quote_request_id: string
+        }
+        Returns: {
+          equipment_fee: number
+          package_label: string
+          performance_fee: number
+          talent_payout: number
+          travel_distance_km: number
+          travel_estimated: boolean
+          travel_fee: number
+        }[]
       }
       price_range_for_amount: {
         Args: { p_amount: number; p_at?: string }

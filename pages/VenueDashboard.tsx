@@ -722,7 +722,6 @@ if (data) venueProfile = data as unknown as VenueProfile;
                             <div className="flex flex-wrap gap-4 text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">
                               <span className="flex items-center gap-1"><Calendar size={14} /> {lkDate(req.starts_at, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</span>
                               <span className="flex items-center gap-1"><Clock size={14} /> {lkTime(req.starts_at)} · {req.duration_hours} hrs</span>
-                              <span className="flex items-center gap-1 text-brand-lime"><CreditCard size={14} /> {req.budget_min}–{req.budget_max} LKR</span>
                             </div>
                           </div>
                         </div>

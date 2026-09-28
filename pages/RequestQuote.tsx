@@ -52,6 +52,7 @@ interface QuoteFormData {
   startTime: string;
   endTime: string;
   location: string;
+  eventAddress: string;
   districtCode: string;
   venueId: string;
   talentId: string;
@@ -76,6 +77,7 @@ export const RequestQuote: React.FC = () => {
     startTime: '',
     endTime: '',
     location: '',
+    eventAddress: '',
     districtCode: '',
     venueId: '',
     talentId: preSelectedTalentId || '',
@@ -116,28 +118,70 @@ export const RequestQuote: React.FC = () => {
     checkAuth();
   }, []);
 
-  // Live talent list. Only is_public = true rows are visible under RLS to a
-  // non-owner reader.
+    // Which event types each public talent takes. From talent_offered_event_types,
+  // which exposes THAT a talent does weddings but never WHAT they charge —
+  // talent_rates is private (D-046), so this view is the only way the picker can
+  // filter at all.
+  const [offeredBy, setOfferedBy] = useState<Record<string, string[]>>({});
+
   useEffect(() => {
     async function loadTalent() {
       setTalentLoading(true);
-      const { data, error } = await supabase
-        .from('profiles_talent')
-        .select('id, stage_name')
-        .eq('is_public', true)
-        .order('stage_name');
 
-      if (!error && data) {
-        setTalentOptions(data);
-        setFormData(prev => ({
-          ...prev,
-          talentId: prev.talentId || data[0]?.id || ''
-        }));
+      const [{ data: talent, error }, { data: offered }] = await Promise.all([
+        supabase.from('profiles_talent').select('id, stage_name').eq('is_public', true).order('stage_name'),
+        supabase.from('talent_offered_event_types').select('talent_id, event_type'),
+      ]);
+
+      if (!error && talent) {
+        setTalentOptions(talent);
+        // No auto-selection. Picking someone on the client's behalf is a choice
+        // they did not make, and with filtering it would silently land on
+        // whoever sorts first among those offering the category.
       }
+
+            // View columns arrive as nullable: Postgres reports no NOT NULL metadata
+      // for a view, so the generated types widen every column. Neither is ever
+      // null in practice — both come from NOT NULL base columns.
+      const map: Record<string, string[]> = {};
+      for (const row of offered ?? []) {
+        if (!row.talent_id || !row.event_type) continue;
+        (map[row.talent_id] ??= []).push(row.event_type as string);
+      }
+      setOfferedBy(map);
+
       setTalentLoading(false);
     }
     loadTalent();
   }, []);
+
+  // The package for the chosen event type, so the client sees what they are
+  // choosing a window against.
+  const [packageLabel, setPackageLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!formData.eventType) { setPackageLabel(null); return; }
+    let cancelled = false;
+    supabase
+      .from('event_type_packages')
+      .select('label')
+      .eq('event_type', formData.eventType)
+      .maybeSingle()
+      .then(({ data }) => { if (!cancelled) setPackageLabel(data?.label ?? null); });
+    return () => { cancelled = true; };
+  }, [formData.eventType]);
+
+  // Journey A: arrived from an artist page, talent fixed, event type variable.
+  // Journey B: arrived directly, event type first, then a filtered picker.
+  const talentIsFixed = !!preSelectedTalentId;
+
+  const selectableTalent = formData.eventType
+    ? talentOptions.filter(t => (offeredBy[t.id] ?? []).includes(formData.eventType))
+    : talentOptions;
+
+  const fixedTalentTakesThis =
+    !preSelectedTalentId || !formData.eventType ||
+    (offeredBy[preSelectedTalentId] ?? []).includes(formData.eventType);
 
   // Venue options depend on WHO is asking, so this waits for the role rather
   // than firing on mount.
@@ -252,6 +296,7 @@ export const RequestQuote: React.FC = () => {
         ends_at: endsAt,
         venue_id: formData.venueId || null,
         location: formData.location,
+        event_address: formData.venueId ? null : (formData.eventAddress.trim() || null),
         event_latitude: eventLatitude,
         event_longitude: eventLongitude,
         special_requirements: formData.notes,
@@ -380,8 +425,9 @@ export const RequestQuote: React.FC = () => {
                   ))}
                 </select>
               </div>
-              <div className="space-y-2">
-                <label className="text-xs font-black text-brand-lime uppercase tracking-widest">
+
+            <div className="space-y-2">
+              <label className="text-xs font-black text-brand-lime uppercase tracking-widest">
                   {userRole === 'venue' ? 'Your Venue' : 'Listed Venue (optional)'}
                 </label>
                 <select
@@ -402,6 +448,27 @@ export const RequestQuote: React.FC = () => {
                   ))}
                 </select>
               </div>
+
+              {/* Only for non-venue bookings: a venue already carries its own
+                  address, and asking again would collect a second copy free to
+                  disagree with the first. */}
+              {!formData.venueId && (
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-brand-lime uppercase tracking-widest">Event Address</label>
+                  <input
+                    type="text"
+                    name="eventAddress"
+                    required
+                    value={formData.eventAddress}
+                    onChange={handleChange}
+                    placeholder="Street address the performer should come to"
+                    className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all"
+                  />
+                  <p className="text-xs text-white/50">
+                    Coordinates decide the travel fee; this is how the performer finds the door.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -459,6 +526,13 @@ export const RequestQuote: React.FC = () => {
               </p>
             )}
 
+            {packageLabel && (
+              <p className="text-xs text-white/60 -mt-2">
+                {EVENT_TYPES.find(e => e.value === formData.eventType)?.label} bookings are a set package:{' '}
+                <span className="text-brand-lime">{packageLabel}</span>. A shorter window is fine — the fee is the same.
+              </p>
+            )}
+
             <div className="space-y-2">
               <label className="text-xs font-black text-brand-lime uppercase tracking-widest">Event Type</label>
               <select
@@ -473,27 +547,37 @@ export const RequestQuote: React.FC = () => {
                   <option key={et.value} value={et.value}>{et.label}</option>
                 ))}
               </select>
+              {!fixedTalentTakesThis && (
+                <p className="text-xs text-amber-400" role="alert">
+                  This performer doesn't take {EVENT_TYPES.find(e => e.value === formData.eventType)?.label.toLowerCase()} bookings.{' '}
+                  <Link to="/artists" className="underline">Browse performers who do</Link>.
+                </p>
+              )}
             </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-black text-brand-lime uppercase tracking-widest">Select Talent</label>
-              <select
-                name="talentId"
-                required
-                value={formData.talentId}
-                onChange={handleChange}
-                disabled={talentLoading || talentOptions.length === 0}
-                className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all appearance-none cursor-pointer disabled:opacity-50"
-              >
-                {talentLoading && <option value="">Loading talent...</option>}
-                {!talentLoading && talentOptions.length === 0 && (
-                  <option value="">No talent currently available</option>
-                )}
-                {talentOptions.map((talent) => (
-                                    <option key={talent.id} value={talent.id}>{talent.stage_name || 'Unnamed artist'}</option>
-                ))}
-              </select>
-            </div>
+            {!talentIsFixed && (
+              <div className="space-y-2">
+                <label className="text-xs font-black text-brand-lime uppercase tracking-widest">Select Talent</label>
+                <select
+                  name="talentId"
+                  required
+                  value={formData.talentId}
+                  onChange={handleChange}
+                  disabled={talentLoading || !formData.eventType || selectableTalent.length === 0}
+                  className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all appearance-none cursor-pointer disabled:opacity-50"
+                >
+                  <option value="">
+                    {talentLoading ? 'Loading talent...'
+                      : !formData.eventType ? 'Choose an event type first'
+                      : selectableTalent.length === 0 ? 'No performers take this kind of booking yet'
+                      : 'Select a performer...'}
+                  </option>
+                  {!talentLoading && formData.eventType && selectableTalent.map((talent) => (
+                    <option key={talent.id} value={talent.id}>{talent.stage_name || 'Unnamed artist'}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div className="space-y-2">
               <label className="text-xs font-black text-brand-lime uppercase tracking-widest">Extra Vibes / Notes</label>
@@ -512,7 +596,7 @@ export const RequestQuote: React.FC = () => {
                 type="submit"
                 variant="primary"
                 className="w-full py-5 text-lg"
-                disabled={loading || talentLoading || !formData.talentId || !formData.eventType || !formData.districtCode}
+                disabled={loading || talentLoading || !formData.talentId || !formData.eventType || !formData.districtCode || !fixedTalentTakesThis}
               >
                 {loading ? 'Processing...' : 'Submit Quote Request'}
               </Button>
