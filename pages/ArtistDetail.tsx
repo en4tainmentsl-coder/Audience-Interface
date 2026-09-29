@@ -6,6 +6,7 @@ import { PlayCircle, Heart, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { User } from '@supabase/supabase-js';
 import type { RawTalentStats } from '../types';
+import { eventTypeLabel } from '../constants/eventTypes';
 
 // Stable per-browser identifier for anonymous hearts. Module scope deliberately:
 // it is used by both the initial fetch and the heart handler, which are separate
@@ -39,6 +40,26 @@ export const ArtistDetail: React.FC = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [offeredEventTypes, setOfferedEventTypes] = useState<string[]>([]);
+
+  // What this performer takes bookings for. From talent_offered_event_types,
+  // which carries no rate. No Range shown here: the profile has no event type
+  // to resolve one against, and a range without a category is meaningless.
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    supabase
+      .from('talent_offered_event_types')
+      .select('event_type')
+      .eq('talent_id', id)
+      .then(({ data }) => {
+        if (cancelled) return;
+        setOfferedEventTypes(
+          (data ?? []).flatMap(r => (r.event_type ? [r.event_type as string] : []))
+        );
+      });
+    return () => { cancelled = true; };
+  }, [id]);
 
   const fetchArtistData = async (): Promise<void> => {
     if (!id) return;
@@ -226,6 +247,15 @@ export const ArtistDetail: React.FC = () => {
           <div className="flex items-center gap-4 mb-6" id="rating-summary">
             <TalentRating stats={artist.stats} variant="full" size={24} className="text-xl font-semibold" />
           </div>
+          {offeredEventTypes.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-6" id="offered-event-types">
+              {offeredEventTypes.map((et) => (
+                <span key={et} className="bg-white/5 border border-white/10 text-gray-300 text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full">
+                  {eventTypeLabel(et)}
+                </span>
+              ))}
+            </div>
+          )}
           <Link to={`/request-quote?artistId=${artist.id}`} id="request-quote-top-btn">
             <Button size="lg" variant="primary">Request Quotation</Button>
           </Link>

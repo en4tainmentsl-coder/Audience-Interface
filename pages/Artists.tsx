@@ -4,6 +4,7 @@ import { FlexArtistCardRow } from '../components/FlexArtistCard';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { Artist } from '../types';
+import { EVENT_TYPES } from '../constants/eventTypes';
 
 export const Artists: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -11,6 +12,13 @@ export const Artists: React.FC = () => {
   
   const [searchTerm, setSearchTerm] = useState<string>(urlQuery);
   const [selectedCategory, setSelectedCategory] = useState<string>('All Categories');
+  const [selectedEventType, setSelectedEventType] = useState<string>('');
+
+  // talent_id -> { event_type -> price range ordinal }
+  // From talent_offered_event_types, which exposes THAT a performer takes
+  // wedding bookings and their range bucket — never what they charge, and never
+  // the range boundaries. talent_rates is private (D-046).
+  const [rangeByTalent, setRangeByTalent] = useState<Record<string, Record<string, number>>>({});
   const [artists, setArtists] = useState<Artist[]>([]);
 
   const fetchArtists = async (): Promise<void> => {
@@ -80,6 +88,25 @@ export const Artists: React.FC = () => {
     fetchArtists();
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from('talent_offered_event_types')
+      .select('talent_id, event_type, price_range_ordinal')
+      .then(({ data }) => {
+        if (cancelled) return;
+        const map: Record<string, Record<string, number>> = {};
+        for (const row of data ?? []) {
+          // View columns arrive nullable: Postgres reports no NOT NULL metadata
+          // for a view, so the generated types widen every column.
+          if (!row.talent_id || !row.event_type || row.price_range_ordinal == null) continue;
+          (map[row.talent_id] ??= {})[row.event_type] = row.price_range_ordinal;
+        }
+        setRangeByTalent(map);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
   const categories: string[] = ['All Categories', 'Electronic / DJ', 'Rock / Alternative', 'Jazz / Blues', 'Acoustic / Indie'];
 
   useEffect(() => {
@@ -98,14 +125,26 @@ export const Artists: React.FC = () => {
   };
 
   const filteredArtists: Artist[] = useMemo(() => {
-    return artists.filter((artist: Artist) => {
+    return artists
+      // No event type chosen: show everyone, with no range. A range is
+      // meaningless without a category, so there is nothing honest to display
+      // until the client picks one.
+      .filter((artist: Artist) =>
+        !selectedEventType || rangeByTalent[artist.id]?.[selectedEventType] != null)
+      .map((artist: Artist) => ({
+        ...artist,
+        priceRangeOrdinal: selectedEventType
+          ? rangeByTalent[artist.id]?.[selectedEventType] ?? null
+          : null,
+      }))
+      .filter((artist: Artist) => {
       const matchesSearch: boolean = artist.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                                    artist.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                                    artist.category.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory: boolean = selectedCategory === 'All Categories' || artist.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
-  }, [searchTerm, selectedCategory, artists]);
+  }, [searchTerm, selectedCategory, artists, selectedEventType, rangeByTalent]);
 
   // Real is_featured flag drives headliner sizing in the roster view too
   const featuredIds = useMemo(
@@ -116,6 +155,7 @@ export const Artists: React.FC = () => {
   const clearAllFilters = (): void => {
     setSearchTerm('');
     setSelectedCategory('All Categories');
+    setSelectedEventType('');
     const newParams: URLSearchParams = new URLSearchParams(searchParams);
     newParams.delete('q');
     setSearchParams(newParams, { replace: true });
@@ -154,6 +194,34 @@ export const Artists: React.FC = () => {
             )}
           </div>
 
+          <div className="flex flex-col sm:flex-row items-center gap-4 justify-center mb-4">
+            <div className="flex items-center gap-2 text-xs font-black text-brand-lime uppercase tracking-widest mr-2">
+              <SlidersHorizontal size={14} />
+              Event Type:
+            </div>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {EVENT_TYPES.map((et) => (
+                <button
+                  key={et.value}
+                  onClick={() => setSelectedEventType(selectedEventType === et.value ? '' : et.value)}
+                  className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all ${
+                    selectedEventType === et.value
+                      ? 'bg-brand-lime text-brand-dark shadow-lg shadow-brand-lime/30 scale-105'
+                      : 'bg-brand-surface text-gray-400 hover:text-white hover:bg-white/10 border border-white/5'
+                  }`}
+                >
+                  {et.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {!selectedEventType && (
+            <p className="text-center text-xs text-gray-500 mb-4">
+              Pick an event type to see who takes that kind of booking, and their price range.
+            </p>
+          )}
+
           <div className="flex flex-col sm:flex-row items-center gap-4 justify-center">
             <div className="flex items-center gap-2 text-xs font-black text-brand-lime uppercase tracking-widest mr-2">
               <SlidersHorizontal size={14} />
@@ -181,7 +249,7 @@ export const Artists: React.FC = () => {
           <span className="text-sm text-gray-500 font-medium text-left">
             Showing <span className="text-white font-bold">{filteredArtists.length}</span> results
           </span>
-          { (searchTerm || selectedCategory !== 'All Categories') && (
+          { (searchTerm || selectedCategory !== 'All Categories' || selectedEventType) && (
             <button 
               onClick={clearAllFilters}
               className="text-xs font-bold text-brand-pink hover:underline uppercase tracking-widest"

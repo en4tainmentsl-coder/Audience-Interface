@@ -19,6 +19,11 @@ export interface Artist {
   bio: string;
   gallery: string[];
   is_featured?: boolean;
+  /** Price range for the currently selected event type. Null when no event type
+   *  is selected — a range is meaningless without one, since a talent sits in
+   *  different ranges for different work. Ordinal only: the boundaries are
+   *  readable by no browser role. */
+  priceRangeOrdinal?: number | null;
 }
 
 export interface Quote {
