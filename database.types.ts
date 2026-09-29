@@ -4589,6 +4589,7 @@ export type Database = {
       talent_offered_event_types: {
         Row: {
           event_type: Database["public"]["Enums"]["events_type"] | null
+          price_range_ordinal: number | null
           talent_id: string | null
         }
         Relationships: [

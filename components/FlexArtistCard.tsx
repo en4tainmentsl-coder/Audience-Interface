@@ -140,6 +140,11 @@ export const FlexArtistCard: React.FC<FlexArtistCardProps> = ({ artist, featured
             <span className="bg-black/50 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded border border-white/10">
               {artist.category}
             </span>
+            {artist.priceRangeOrdinal != null && (
+              <span className="bg-brand-purple/80 backdrop-blur-sm text-white text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded border border-white/10">
+                Range {artist.priceRangeOrdinal}
+              </span>
+            )}
           </div>
         </div>
 
