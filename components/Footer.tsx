@@ -40,7 +40,7 @@ export const Footer: React.FC = () => {
             <ul className="space-y-3">
               <li className="flex items-center gap-3 text-gray-400">
                 <Mail size={18} className="text-brand-pink" />
-                <span>booking@en4tainment.com</span>
+                <span>info@en4tainment.com</span>
               </li>
             </ul>
           </div>
