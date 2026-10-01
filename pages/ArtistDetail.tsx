@@ -79,7 +79,9 @@ export const ArtistDetail: React.FC = () => {
           primary_location,
           profile_photo_url,
           talent_media (cloudinary_secure_url, is_featured, resource_type, media_type, sort_order),
-          talent_genres (genre_id, is_primary, genres (genre_name))
+          primary_genre:genres!profiles_talent_primary_genre_id_fkey (genre_name),
+          secondary_genre:genres!profiles_talent_secondary_genre_id_fkey (genre_name),
+          tertiary_genre:genres!profiles_talent_tertiary_genre_id_fkey (genre_name)
         `)
         .eq('id', id)
         .single();
@@ -90,9 +92,10 @@ export const ArtistDetail: React.FC = () => {
         const media = Array.isArray(rawMedia)
           ? rawMedia
           : (rawMedia && typeof rawMedia === 'object' ? [rawMedia] : []);
-        const genres = talentData.talent_genres as unknown as Array<{ is_primary: boolean; genres?: { genre_name: string } }> || [];
+        const genres: string[] = [talentData.primary_genre, talentData.secondary_genre, talentData.tertiary_genre]
+          .filter(Boolean).map((g: any) => g.genre_name);
 
-        const primaryGenre: string = genres.find(g => g.is_primary)?.genres?.genre_name || 'Artist';
+        const primaryGenre: string = genres[0] || 'Artist';
         // The three profile photos are talent_media rows with
         // media_type 'profile_photo', at sort_order 0, 1 and 2 — written by the
         // Talent PWA's FEATURE_SLOTS. Slot 0 is the lead image.
