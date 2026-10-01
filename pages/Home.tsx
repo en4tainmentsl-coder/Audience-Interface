@@ -28,7 +28,9 @@ export const Home: React.FC = () => {
           primary_location,
           profile_photo_url,
           talent_media (cloudinary_secure_url, is_featured, resource_type),
-          talent_genres (genre_id, is_primary, genres (genre_name))
+          primary_genre:genres!profiles_talent_primary_genre_id_fkey (genre_name),
+          secondary_genre:genres!profiles_talent_secondary_genre_id_fkey (genre_name),
+          tertiary_genre:genres!profiles_talent_tertiary_genre_id_fkey (genre_name)
         `)
         .eq('is_public', true)
         .eq('profile_status', 'active')
@@ -42,9 +44,9 @@ export const Home: React.FC = () => {
           const media = Array.isArray(rawMedia)
             ? rawMedia
             : (rawMedia && typeof rawMedia === 'object' ? [rawMedia] : []);
-          const genres = (talent.talent_genres as Array<{ is_primary: boolean; genres?: { genre_name: string } }>) || [];
-
-          const primaryGenre: string = genres.find(g => g.is_primary)?.genres?.genre_name || 'Artist';
+          const genres: string[] = [talent.primary_genre, talent.secondary_genre, talent.tertiary_genre]
+            .filter(Boolean).map((g: any) => g.genre_name);
+          const primaryGenre: string = genres[0] || 'Artist';
           const featuredImage: string = media.find(m => m.is_featured && m.resource_type === 'image')?.cloudinary_secure_url || talent.profile_photo_url || '';
           
           return {
