@@ -7,19 +7,7 @@ import { supabase } from '../services/supabase';
 import { User } from '@supabase/supabase-js';
 import type { RawTalentStats } from '../types';
 import { eventTypeLabel } from '../constants/eventTypes';
-
-// Stable per-browser identifier for anonymous hearts. Module scope deliberately:
-// it is used by both the initial fetch and the heart handler, which are separate
-// closures. Defining it inside the fetch left the handler referencing an
-// out-of-scope name — a runtime ReferenceError on every anonymous heart.
-const getVisitorId = (): string => {
-  let vid = localStorage.getItem('en4_visitor_id');
-  if (!vid) {
-    vid = crypto.randomUUID();
-    localStorage.setItem('en4_visitor_id', vid);
-  }
-  return vid;
-};
+import { SignInModal } from '../components/SignInModal';
 
 interface ArtistDetailData {
   id: string;
@@ -37,7 +25,7 @@ export const ArtistDetail: React.FC = () => {
   const [artist, setArtist] = useState<ArtistDetailData | null>(null);
   const [isHearted, setIsHearted] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [showSignIn, setShowSignIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [offeredEventTypes, setOfferedEventTypes] = useState<string[]>([]);
@@ -125,7 +113,7 @@ export const ArtistDetail: React.FC = () => {
         setArtist(null);
       }
 
-      // Check Heart if user is logged in
+            // Check Heart if user is logged in
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (authUser) {
         const { data: heartData } = await supabase
@@ -133,16 +121,7 @@ export const ArtistDetail: React.FC = () => {
           .select('*')
           .eq('user_id', authUser.id)
           .eq('talent_id', id)
-          .single();
-        if (heartData) setIsHearted(true);
-      } else {
-        const visitorId = getVisitorId();
-        const { data: heartData } = await supabase
-          .from('talent_favourites')
-          .select('*')
-          .eq('visitor_id', visitorId)
-          .eq('talent_id', id)
-          .single();
+          .maybeSingle();
         if (heartData) setIsHearted(true);
       }
     } catch (err) {
@@ -155,12 +134,6 @@ export const ArtistDetail: React.FC = () => {
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (authUser) {
         setUser(authUser);
-        const { data: profile } = await supabase
-          .from('profiles_users')
-          .select('role')
-          .eq('id', authUser.id)
-          .single();
-        setUserRole(profile?.role || null);
       }
     };
     checkUser();
@@ -168,12 +141,16 @@ export const ArtistDetail: React.FC = () => {
   }, [id]);
 
   const handleHeart = async (): Promise<void> => {
-  setError(null);
-  setSuccess(null);
-  if (!id) return;
+    setError(null);
+    setSuccess(null);
+    if (!id) return;
 
-  if (isHearted) {
-    if (user && userRole === 'client') {
+    if (!user) {
+      setShowSignIn(true);
+      return;
+    }
+
+    if (isHearted) {
       try {
         const { error: deleteError } = await supabase
           .from('talent_favourites')
@@ -186,38 +163,26 @@ export const ArtistDetail: React.FC = () => {
       } catch (err: any) {
         setError('Failed to remove heart: ' + err.message);
       }
-    } else {
-      setError("You've already hearted this artist.");
+      return;
     }
-    return;
-  }
 
-  try {
-    if (user && userRole === 'client') {
+    try {
       const { error: insertError } = await supabase
         .from('talent_favourites')
         .insert({ user_id: user.id, talent_id: id, app_source: 'en4tainment' });
-      if (insertError) throw insertError;
-    } else {
-      const visitorId = getVisitorId();
-      const { error: insertError } = await supabase
-        .from('talent_favourites')
-        .insert({ visitor_id: visitorId, talent_id: id, app_source: 'en4tainment' });
       if (insertError) {
         if (insertError.code === '23505') {
-          setError("You've already hearted this artist.");
           setIsHearted(true);
           return;
         }
         throw insertError;
       }
+      setIsHearted(true);
+      setSuccess('Added to favourites!');
+    } catch (err: any) {
+      setError('Failed to save your heart: ' + err.message);
     }
-    setIsHearted(true);
-    setSuccess('Added to favourites!');
-  } catch (err: any) {
-    setError('Failed to save your heart: ' + err.message);
-  }
-};
+  };
   
   if (!artist) return <div className="pt-32 text-center text-white" id="artist-not-found">Artist not found</div>;
 
@@ -315,6 +280,11 @@ export const ArtistDetail: React.FC = () => {
         </div>
 
       </div>
+      <SignInModal
+        open={showSignIn}
+        onClose={() => setShowSignIn(false)}
+        reason="Sign in to save artists you like."
+      />
     </div>
   );
 };

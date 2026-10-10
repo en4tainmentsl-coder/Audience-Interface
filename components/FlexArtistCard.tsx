@@ -4,6 +4,7 @@ import { ArrowRight, Heart, AlertCircle } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { Artist } from '../types';
 import { TalentRating } from './TalentRating';
+import { SignInModal } from './SignInModal';
 
 // ─────────────────────────────────────────────────────────────────────────
 // FlexArtistCard
@@ -33,20 +34,14 @@ export const FlexArtistCard: React.FC<FlexArtistCardProps> = ({ artist, featured
     email?: string;
   }
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showSignIn, setShowSignIn] = useState(false);
 
   useEffect(() => {
     const checkUser = async (): Promise<void> => {
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (authUser) {
         setUser({ id: authUser.id, email: authUser.email });
-        const { data: profile } = await supabase
-          .from('profiles_users')
-          .select('role')
-          .eq('id', authUser.id)
-          .single();
-        setUserRole(profile?.role ?? null);
 
         const { data: heartData } = await supabase
           .from('talent_favourites')
@@ -67,14 +62,7 @@ export const FlexArtistCard: React.FC<FlexArtistCardProps> = ({ artist, featured
     setError(null);
 
     if (!user) {
-      setError('Log in to favourite');
-      setTimeout(() => setError(null), 3000);
-      return;
-    }
-
-    if (userRole !== 'client') {
-      setError('Clients only');
-      setTimeout(() => setError(null), 3000);
+      setShowSignIn(true);
       return;
     }
 
@@ -184,6 +172,12 @@ export const FlexArtistCard: React.FC<FlexArtistCardProps> = ({ artist, featured
           <AlertCircle size={10} /> {error}
         </div>
       )}
+
+      <SignInModal
+        open={showSignIn}
+        onClose={() => setShowSignIn(false)}
+        reason="Sign in to save artists you like."
+      />
     </div>
   );
 };

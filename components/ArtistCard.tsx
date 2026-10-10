@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 import { ArrowRight, Heart, AlertCircle } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { Artist } from '../types';
+import { SignInModal } from './SignInModal';
 
 interface ArtistCardProps {
   artist: Artist;
@@ -17,20 +18,14 @@ export const ArtistCard: React.FC<ArtistCardProps> = ({ artist }) => {
     email?: string;
   }
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showSignIn, setShowSignIn] = useState(false);
 
   useEffect(() => {
     const checkUser = async (): Promise<void> => {
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (authUser) {
         setUser({ id: authUser.id, email: authUser.email });
-        const { data: profile } = await supabase
-          .from('profiles_users')
-          .select('role')
-          .eq('id', authUser.id)
-          .single();
-        setUserRole(profile?.role ?? null);
         
         // Check Heart status
         const { data: heartData } = await supabase
@@ -51,17 +46,10 @@ export const ArtistCard: React.FC<ArtistCardProps> = ({ artist }) => {
     e.stopPropagation();
     setError(null);
 
-    if (!user) {
-      setError('Please login to favourite.');
-      setTimeout(() => setError(null), 3000);
-      return;
-    }
-
-    if (userRole !== 'client') {
-      setError('Only client accounts can favourite.');
-      setTimeout(() => setError(null), 3000);
-      return;
-    }
+  if (!user) {
+    setShowSignIn(true);
+    return;
+  }
 
     try {
       if (isHearted) {
@@ -142,6 +130,12 @@ export const ArtistCard: React.FC<ArtistCardProps> = ({ artist }) => {
           <AlertCircle size={10} /> {error}
         </div>
       )}
+
+      <SignInModal
+        open={showSignIn}
+        onClose={() => setShowSignIn(false)}
+        reason="Sign in to save artists you like."
+      />
     </div>
   );
 };
