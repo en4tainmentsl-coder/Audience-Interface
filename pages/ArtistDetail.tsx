@@ -18,6 +18,8 @@ interface ArtistDetailData {
   category: string;
   stats: RawTalentStats;
   gallery: string[];
+  trailerVideoUrl: string | null;
+  livePerformanceVideoUrl: string | null;
 }
 
 export const ArtistDetail: React.FC = () => {
@@ -66,6 +68,8 @@ export const ArtistDetail: React.FC = () => {
           type_of_performer,
           primary_location,
           profile_photo_url,
+          url_trailer_video,
+          url_live_performace_video,
           talent_media (cloudinary_secure_url, is_featured, resource_type, media_type, sort_order),
           primary_genre:genres!profiles_talent_primary_genre_id_fkey (genre_name),
           secondary_genre:genres!profiles_talent_secondary_genre_id_fkey (genre_name),
@@ -107,7 +111,9 @@ export const ArtistDetail: React.FC = () => {
           bio: talentData.bio || '',
           category: primaryGenre,
           stats: talentData.talent_stats,
-          gallery: profilePhotos
+          gallery: profilePhotos,
+          trailerVideoUrl: talentData.url_trailer_video ?? null,
+          livePerformanceVideoUrl: talentData.url_live_performace_video ?? null
         });
             } else {
         setArtist(null);
@@ -253,18 +259,45 @@ export const ArtistDetail: React.FC = () => {
           </section>
 
           <section className="mb-12">
-            <h2 className="text-2xl font-bold mb-6 border-l-4 border-brand-lime pl-4 leading-none">Gallery & Performances</h2>
+            <h2 className="text-2xl font-bold mb-6 border-l-4 border-brand-lime pl-4 leading-none">Gallery</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {artist.gallery.map((img, idx) => (
                 <div key={idx} className="relative group rounded-lg overflow-hidden h-64 bg-gray-900" id={`gallery-item-${idx}`}>
                   <img src={img} alt="Gallery" className="w-full h-full object-cover group-hover:opacity-75 transition-opacity" />
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <PlayCircle className="text-white w-12 h-12 drop-shadow-lg" />
-                  </div>
                 </div>
               ))}
             </div>
           </section>
+
+          {(artist.trailerVideoUrl || artist.livePerformanceVideoUrl) && (
+            <section className="mb-12">
+              <h2 className="text-2xl font-bold mb-6 border-l-4 border-brand-purple pl-4 leading-none">Watch</h2>
+              <div className="flex flex-wrap gap-4">
+                {artist.trailerVideoUrl && (
+                  <a
+                    href={artist.trailerVideoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 border border-white/10 hover:border-brand-purple text-white font-semibold transition-colors"
+                    id="video-trailer"
+                  >
+                    <PlayCircle size={20} /> Watch trailer
+                  </a>
+                )}
+                {artist.livePerformanceVideoUrl && (
+                  <a
+                    href={artist.livePerformanceVideoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 border border-white/10 hover:border-brand-lime text-white font-semibold transition-colors"
+                    id="video-live"
+                  >
+                    <PlayCircle size={20} /> Live performance
+                  </a>
+                )}
+              </div>
+            </section>
+          )}
         </div>
 
         <div className="lg:col-span-1 space-y-8 text-left">
