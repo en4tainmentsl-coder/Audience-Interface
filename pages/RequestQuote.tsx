@@ -6,6 +6,8 @@ import { DISTRICTS, findDistrict } from '../constants/districts';
 import { CheckCircle, Music, MapPin, Calendar, Clock, AlertCircle } from 'lucide-react';
 import type { Database } from '../database.types';
 import { EVENT_TYPES } from '../constants/eventTypes';
+import { AUDIENCE_CAPACITY_BANDS, type AudienceCapacityBand } from '../constants/audienceCapacity';
+import { SignInModal } from '../components/SignInModal';
 
 type EventType = Database['public']['Enums']['events_type'];
 
@@ -41,6 +43,7 @@ interface QuoteFormData {
   venueId: string;
   talentId: string;
   eventType: EventType | '';
+  audienceCapacity: AudienceCapacityBand | '';
   notes: string;
 }
 
@@ -66,6 +69,7 @@ export const RequestQuote: React.FC = () => {
     venueId: '',
     talentId: preSelectedTalentId || '',
     eventType: '',
+    audienceCapacity: '',
     notes: ''
   });
 
@@ -76,6 +80,7 @@ export const RequestQuote: React.FC = () => {
 
   const [authChecked, setAuthChecked] = useState<boolean>(false);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [showSignIn, setShowSignIn] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -223,6 +228,11 @@ export const RequestQuote: React.FC = () => {
       return;
     }
 
+    if (!formData.audienceCapacity) {
+      setErrorMessage("Please tell us roughly how many guests are expected.");
+      return;
+    }
+
     if (!formData.districtCode) {
       setErrorMessage("Please select the district where the event will take place.");
       return;
@@ -276,6 +286,7 @@ export const RequestQuote: React.FC = () => {
         client_user_id: user.id,
         talent_id: formData.talentId,
         event_type: formData.eventType,
+        audience_capacity: formData.audienceCapacity,
         starts_at: startsAt,
         ends_at: endsAt,
         venue_id: formData.venueId || null,
@@ -327,9 +338,14 @@ export const RequestQuote: React.FC = () => {
           <p className="text-gray-400 text-lg mb-10">
             Please sign in to request a quote from our talent.
           </p>
-          <Link to="/login">
-            <Button variant="primary" size="lg" className="w-full">Sign In</Button>
-          </Link>
+          <Button variant="primary" size="lg" className="w-full" onClick={() => setShowSignIn(true)}>
+            Sign In
+          </Button>
+          <SignInModal
+            open={showSignIn}
+            onClose={() => setShowSignIn(false)}
+            reason="Sign in to request a quote from this artist."
+          />
         </div>
       </div>
     );
@@ -537,6 +553,22 @@ export const RequestQuote: React.FC = () => {
                   <Link to="/artists" className="underline">Browse performers who do</Link>.
                 </p>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-black text-brand-lime uppercase tracking-widest">Expected Guests</label>
+              <select
+                name="audienceCapacity"
+                required
+                value={formData.audienceCapacity}
+                onChange={handleChange}
+                className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all appearance-none cursor-pointer"
+              >
+                <option value="">Roughly how many people?</option>
+                {AUDIENCE_CAPACITY_BANDS.map((b) => (
+                  <option key={b.value} value={b.value}>{b.label}</option>
+                ))}
+              </select>
             </div>
 
             {!talentIsFixed && (

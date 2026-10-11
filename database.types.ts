@@ -3571,6 +3571,7 @@ export type Database = {
       }
       quote_requests: {
         Row: {
+          audience_capacity: Database["public"]["Enums"]["audience_capacity_band"]
           client_user_id: string
           created_at: string
           decline_reason:
@@ -3593,6 +3594,7 @@ export type Database = {
           venue_id: string | null
         }
         Insert: {
+          audience_capacity: Database["public"]["Enums"]["audience_capacity_band"]
           client_user_id: string
           created_at?: string
           decline_reason?:
@@ -3615,6 +3617,7 @@ export type Database = {
           venue_id?: string | null
         }
         Update: {
+          audience_capacity?: Database["public"]["Enums"]["audience_capacity_band"]
           client_user_id?: string
           created_at?: string
           decline_reason?:
@@ -3962,7 +3965,7 @@ export type Database = {
           id: string
           notes: string | null
           talent_id: string
-          user_id: string | null
+          user_id: string
           visitor_id: string | null
         }
         Insert: {
@@ -3971,7 +3974,7 @@ export type Database = {
           id?: string
           notes?: string | null
           talent_id: string
-          user_id?: string | null
+          user_id: string
           visitor_id?: string | null
         }
         Update: {
@@ -3980,7 +3983,7 @@ export type Database = {
           id?: string
           notes?: string | null
           talent_id?: string
-          user_id?: string | null
+          user_id?: string
           visitor_id?: string | null
         }
         Relationships: [
@@ -3989,13 +3992,6 @@ export type Database = {
             columns: ["talent_id"]
             isOneToOne: false
             referencedRelation: "profiles_talent"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "Reviews_Heart_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_users"
             referencedColumns: ["id"]
           },
         ]
@@ -4749,6 +4745,12 @@ export type Database = {
         | "support"
         | "executive"
       approval_status: "draft" | "pending_approval" | "approved" | "rejected"
+      audience_capacity_band:
+        | "under_100"
+        | "100_to_300"
+        | "301_to_750"
+        | "751_to_1500"
+        | "over_1500"
       audit_action:
         | "insert"
         | "update"
@@ -5065,6 +5067,13 @@ export const Constants = {
         "executive",
       ],
       approval_status: ["draft", "pending_approval", "approved", "rejected"],
+      audience_capacity_band: [
+        "under_100",
+        "100_to_300",
+        "301_to_750",
+        "751_to_1500",
+        "over_1500",
+      ],
       audit_action: [
         "insert",
         "update",
