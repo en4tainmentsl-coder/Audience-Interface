@@ -358,9 +358,14 @@ export const RequestQuote: React.FC = () => {
       <div className="pt-32 pb-20 min-h-screen bg-brand-dark flex items-center justify-center px-4" id="request-quote-auth-gate">
         <div className="max-w-md w-full text-center bg-brand-surface p-12 rounded-3xl border border-white/10 shadow-2xl">
           <h1 className="text-3xl font-black text-white mb-4 uppercase italic">Sign In Required</h1>
-          <p className="text-gray-400 text-lg mb-10">
-            Please sign in to request a quote from our talent.
+          <p className="text-gray-400 text-lg mb-6">
+            Three quick steps before you can send a request.
           </p>
+          <ol className="text-left text-gray-400 text-sm space-y-3 mb-10">
+            <li><span className="text-brand-lime font-black">1.</span> Sign in with Google</li>
+            <li><span className="text-brand-lime font-black">2.</span> Confirm your date of birth and contact number</li>
+            <li><span className="text-brand-lime font-black">3.</span> Tell us about your event</li>
+          </ol>
           <Button variant="primary" size="lg" className="w-full" onClick={() => setShowSignIn(true)}>
             Sign In
           </Button>
