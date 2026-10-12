@@ -8,6 +8,7 @@ import type { Database } from '../database.types';
 import { EVENT_TYPES } from '../constants/eventTypes';
 import { AUDIENCE_CAPACITY_BANDS, type AudienceCapacityBand } from '../constants/audienceCapacity';
 import { SignInModal } from '../components/SignInModal';
+import { ClientOnboarding } from '../components/ClientOnboarding';
 
 type EventType = Database['public']['Enums']['events_type'];
 
@@ -76,6 +77,10 @@ export const RequestQuote: React.FC = () => {
   const [talentOptions, setTalentOptions] = useState<TalentOption[]>([]);
   const [talentLoading, setTalentLoading] = useState<boolean>(true);
 
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [authEmail, setAuthEmail] = useState<string | null>(null);
+  const [suggestedName, setSuggestedName] = useState('');
+
   const [venueOptions, setVenueOptions] = useState<VenueOption[]>([]);
 
   const [authChecked, setAuthChecked] = useState<boolean>(false);
@@ -95,12 +100,17 @@ export const RequestQuote: React.FC = () => {
       setIsLoggedIn(!!user);
       if (user) {
         setUserId(user.id);
+        setAuthEmail(user.email ?? null);
+        setSuggestedName(
+          (user.user_metadata?.full_name as string | undefined) ?? ''
+        );
         const { data: profile } = await supabase
           .from('profiles_users')
           .select('role')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
         setUserRole(profile?.role || null);
+        setNeedsOnboarding(!profile);
       }
       setAuthChecked(true);
     }
@@ -325,6 +335,19 @@ export const RequestQuote: React.FC = () => {
           </Link>
         </div>
       </div>
+    );
+  }
+    if (authChecked && isLoggedIn && needsOnboarding && userId) {
+    return (
+      <ClientOnboarding
+        userId={userId}
+        email={authEmail}
+        suggestedName={suggestedName}
+        onComplete={() => {
+          setNeedsOnboarding(false);
+          setUserRole('client');
+        }}
+      />
     );
   }
 
