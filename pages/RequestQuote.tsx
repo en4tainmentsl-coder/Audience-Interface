@@ -8,6 +8,7 @@ import type { Database } from '../database.types';
 import { EVENT_TYPES } from '../constants/eventTypes';
 import { AUDIENCE_CAPACITY_BANDS, type AudienceCapacityBand } from '../constants/audienceCapacity';
 import { SignInModal } from '../components/SignInModal';
+import { ClientOnboarding } from '../components/ClientOnboarding';
 
 type EventType = Database['public']['Enums']['events_type'];
 
@@ -76,6 +77,10 @@ export const RequestQuote: React.FC = () => {
   const [talentOptions, setTalentOptions] = useState<TalentOption[]>([]);
   const [talentLoading, setTalentLoading] = useState<boolean>(true);
 
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [authEmail, setAuthEmail] = useState<string | null>(null);
+  const [suggestedName, setSuggestedName] = useState('');
+
   const [venueOptions, setVenueOptions] = useState<VenueOption[]>([]);
 
   const [authChecked, setAuthChecked] = useState<boolean>(false);
@@ -95,12 +100,17 @@ export const RequestQuote: React.FC = () => {
       setIsLoggedIn(!!user);
       if (user) {
         setUserId(user.id);
+        setAuthEmail(user.email ?? null);
+        setSuggestedName(
+          (user.user_metadata?.full_name as string | undefined) ?? ''
+        );
         const { data: profile } = await supabase
           .from('profiles_users')
           .select('role')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
         setUserRole(profile?.role || null);
+        setNeedsOnboarding(!profile);
       }
       setAuthChecked(true);
     }
@@ -327,6 +337,19 @@ export const RequestQuote: React.FC = () => {
       </div>
     );
   }
+    if (authChecked && isLoggedIn && needsOnboarding && userId) {
+    return (
+      <ClientOnboarding
+        userId={userId}
+        email={authEmail}
+        suggestedName={suggestedName}
+        onComplete={() => {
+          setNeedsOnboarding(false);
+          setUserRole('client');
+        }}
+      />
+    );
+  }
 
   // Auth gate: don't render the form (or let anyone fill it out) until we
   // know there's a valid session. Avoids a confusing failure at submit time.
@@ -335,9 +358,14 @@ export const RequestQuote: React.FC = () => {
       <div className="pt-32 pb-20 min-h-screen bg-brand-dark flex items-center justify-center px-4" id="request-quote-auth-gate">
         <div className="max-w-md w-full text-center bg-brand-surface p-12 rounded-3xl border border-white/10 shadow-2xl">
           <h1 className="text-3xl font-black text-white mb-4 uppercase italic">Sign In Required</h1>
-          <p className="text-gray-400 text-lg mb-10">
-            Please sign in to request a quote from our talent.
+          <p className="text-gray-400 text-lg mb-6">
+            Three quick steps before you can send a request.
           </p>
+          <ol className="text-left text-gray-400 text-sm space-y-3 mb-10">
+            <li><span className="text-brand-lime font-black">1.</span> Sign in with Google</li>
+            <li><span className="text-brand-lime font-black">2.</span> Confirm your date of birth and contact number</li>
+            <li><span className="text-brand-lime font-black">3.</span> Tell us about your event</li>
+          </ol>
           <Button variant="primary" size="lg" className="w-full" onClick={() => setShowSignIn(true)}>
             Sign In
           </Button>

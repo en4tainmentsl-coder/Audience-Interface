@@ -14,7 +14,21 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
+// PKCE, not the default implicit flow. This app uses hash routing
+// (/#/request-quote?...), and the implicit flow returns the session as a
+// URL fragment (#access_token=...). A URL has only one fragment, so the
+// token landed behind the route hash and was never read — sign-in appeared
+// to silently fail and each retry stacked another #access_token on the URL.
+// PKCE returns ?code= as a query parameter, which coexists with hash routes.
 export const supabase: SupabaseClient<Database> = createClient<Database>(
   supabaseUrl,
-  supabaseAnonKey
+  supabaseAnonKey,
+  {
+    auth: {
+      flowType: 'pkce',
+      detectSessionInUrl: true,
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+  }
 );

@@ -4,18 +4,12 @@ import { motion } from 'framer-motion';
 import { Building2, MapPin, Lock, CheckCircle, AlertCircle, Upload, Map as MapIcon, Info, Mail } from 'lucide-react';
 import { Button } from '../components/Button';
 import { supabase } from '../services/supabase';
+import { toE164 } from '../utils/phone';
 
 // Sri Lankan mobiles are entered locally as 07X XXX XXXX or internationally as
 // +94 7X XXX XXXX. Stored as E.164 so the number is unambiguous for dialling
 // and SMS, and so the leading zero is preserved as country context rather than
 // silently dropped.
-const toE164 = (raw: string): string => {
-  const digits = raw.replace(/\D/g, '');
-  if (raw.trim().startsWith('+')) return '+' + digits;
-  if (digits.startsWith('0')) return '+94' + digits.slice(1);
-  if (digits.startsWith('94')) return '+' + digits;
-  return '+94' + digits;
-};
 
 interface InfoTooltipProps {
   text: string;

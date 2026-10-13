@@ -309,6 +309,9 @@ export const ArtistDetail: React.FC = () => {
                  Get a Quote
                </button>
              </Link>
+             <p className="text-white/60 text-xs mt-4">
+               You'll sign in and confirm a few contact details first. Bookings are for over-18s only.
+             </p>
           </div>
         </div>
 
