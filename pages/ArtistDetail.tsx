@@ -69,7 +69,7 @@ export const ArtistDetail: React.FC = () => {
           primary_location,
           profile_photo_url,
           url_trailer_video,
-          url_live_performace_video,
+          url_live_performance_video,
           talent_media (cloudinary_secure_url, is_featured, resource_type, media_type, sort_order),
           primary_genre:genres!profiles_talent_primary_genre_id_fkey (genre_name),
           secondary_genre:genres!profiles_talent_secondary_genre_id_fkey (genre_name),
@@ -113,7 +113,7 @@ export const ArtistDetail: React.FC = () => {
           stats: talentData.talent_stats,
           gallery: profilePhotos,
           trailerVideoUrl: talentData.url_trailer_video ?? null,
-          livePerformanceVideoUrl: talentData.url_live_performace_video ?? null
+          livePerformanceVideoUrl: talentData.url_live_performance_video ?? null
         });
             } else {
         setArtist(null);
