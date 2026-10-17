@@ -100,8 +100,12 @@ interface UpcomingBooking extends BookingRow {
     talent_stats?: RawTalentStats;
     type_of_performer?: string;
     is_verified?: boolean;
-    mobile?: string;
-    email?: string;
+    // Contact lives on talent_contact, released by RLS only on a confirmed or
+    // disputed booking. Null on pending rows by design, not by error.
+    talent_contact?: {
+      email?: string | null;
+      mobile?: string | null;
+    } | null;
   };
   contracts?: {
     id?: string;
@@ -265,7 +269,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
 
         // 3. Upcoming Bookings
         supabase.from('bookings')
-          .select('*, profiles_talent(stage_name, profile_photo_url, talent_stats(rating_average, rating_count), type_of_performer, mobile, email, is_verified), contracts(id, status, signed_by_talent_at, signed_by_venue_at), payments(id, payment_type, payment_status, gross_amount, paid_at, currency)')
+          .select('*, profiles_talent(stage_name, profile_photo_url, talent_stats(rating_average, rating_count), type_of_performer, is_verified, talent_contact(email, mobile)), contracts(id, status, signed_by_talent_at, signed_by_venue_at), payments(id, payment_type, payment_status, gross_amount, paid_at, currency)')
           .eq('venue_id', venueProfile.id)
           .in('booking_status', ['confirmed', 'pending'])
           .order('starts_at', { ascending: true }),
@@ -932,8 +936,8 @@ if (data) venueProfile = data as unknown as VenueProfile;
                               <div>
                                 <h5 className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Talent Contact Details</h5>
                                 <div className="space-y-2">
-                                  <p className="text-sm text-white flex items-center gap-2"><Zap size={14} className="text-brand-purple" /> {booking.profiles_talent?.mobile}</p>
-                                  <p className="text-sm text-white flex items-center gap-2"><MessageSquare size={14} className="text-brand-purple" /> {booking.profiles_talent?.email}</p>
+                                  <p className="text-sm text-white flex items-center gap-2"><Zap size={14} className="text-brand-purple" /> {booking.profiles_talent?.talent_contact?.mobile ?? '—'}</p>
+                                  <p className="text-sm text-white flex items-center gap-2"><MessageSquare size={14} className="text-brand-purple" /> {booking.profiles_talent?.talent_contact?.email ?? '—'}</p>
                                 </div>
                               </div>
                             )}
