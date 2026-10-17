@@ -10,7 +10,32 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.1"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -3958,6 +3983,35 @@ export type Database = {
           },
         ]
       }
+      talent_contact: {
+        Row: {
+          created_at: string
+          email: string | null
+          mobile: string | null
+          talent_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          mobile?: string | null
+          talent_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          mobile?: string | null
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_contact_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: true
+            referencedRelation: "profiles_talent"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       talent_favourites: {
         Row: {
           app_source: string
@@ -5057,6 +5111,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       admin_level: [
