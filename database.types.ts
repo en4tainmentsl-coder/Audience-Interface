@@ -3246,7 +3246,6 @@ export type Database = {
           created_at: string
           date_of_birth: string | null
           deletion_requested_at: string | null
-          email: string | null
           en4tainment_profile_id: string | null
           equipment_fee_percent: number
           feature_sort_order: number | null
@@ -3259,7 +3258,6 @@ export type Database = {
           is_public: boolean
           is_verified: boolean
           languages: string | null
-          mobile: string | null
           optional_location_1: string | null
           optional_location_2: string | null
           optional_location_3: string | null
@@ -3298,7 +3296,6 @@ export type Database = {
           created_at?: string
           date_of_birth?: string | null
           deletion_requested_at?: string | null
-          email?: string | null
           en4tainment_profile_id?: string | null
           equipment_fee_percent?: number
           feature_sort_order?: number | null
@@ -3311,7 +3308,6 @@ export type Database = {
           is_public?: boolean
           is_verified?: boolean
           languages?: string | null
-          mobile?: string | null
           optional_location_1?: string | null
           optional_location_2?: string | null
           optional_location_3?: string | null
@@ -3350,7 +3346,6 @@ export type Database = {
           created_at?: string
           date_of_birth?: string | null
           deletion_requested_at?: string | null
-          email?: string | null
           en4tainment_profile_id?: string | null
           equipment_fee_percent?: number
           feature_sort_order?: number | null
@@ -3363,7 +3358,6 @@ export type Database = {
           is_public?: boolean
           is_verified?: boolean
           languages?: string | null
-          mobile?: string | null
           optional_location_1?: string | null
           optional_location_2?: string | null
           optional_location_3?: string | null
