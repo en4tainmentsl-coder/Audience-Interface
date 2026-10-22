@@ -56,6 +56,7 @@ export const Home: React.FC = () => {
             description: talent.short_bio || '',
             bio: talent.bio || '',
             category: primaryGenre,
+            genres,
             stats: talent.talent_stats,
             gallery: media.filter(m => m.resource_type === 'image').map(m => m.cloudinary_secure_url) || [],
             is_featured: !!talent.is_featured,
