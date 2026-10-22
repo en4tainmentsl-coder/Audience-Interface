@@ -11,7 +11,8 @@ export const Artists: React.FC = () => {
   const urlQuery: string = searchParams.get('q') || '';
   
   const [searchTerm, setSearchTerm] = useState<string>(urlQuery);
-  const [selectedCategory, setSelectedCategory] = useState<string>('All Categories');
+  const [selectedGenre, setSelectedGenre] = useState<string>('');
+  const [genreOptions, setGenreOptions] = useState<{ id: string; genre_name: string }[]>([]);
   const [selectedEventType, setSelectedEventType] = useState<string>('');
 
   // talent_id -> { event_type -> price range ordinal }
@@ -75,6 +76,7 @@ export const Artists: React.FC = () => {
             description: talent.short_bio || '',
             bio: talent.bio || '',
             category: primaryGenre,
+            genres,
             stats: talent.talent_stats,
             gallery: media.filter(m => m.resource_type === 'image').map(m => m.cloudinary_secure_url) || [],
             is_featured: !!talent.is_featured,
@@ -112,9 +114,24 @@ export const Artists: React.FC = () => {
       });
     return () => { cancelled = true; };
   }, []);
-
-  const categories: string[] = ['All Categories', 'Electronic / DJ', 'Rock / Alternative', 'Jazz / Blues', 'Acoustic / Indie'];
-
+  // Chip list comes from the database, not a constant: activating a genre in
+  // Directus adds a chip with no deploy. The RLS policy genres_public_read
+  // already filters is_active, so anon only ever sees the active set — the
+  // .eq below mirrors the same query in Talent_Interface's ProfileEditor.
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from('genres')
+      .select('id, genre_name')
+      .eq('is_active', true)
+      .order('display_order')
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+        setGenreOptions(data);
+      });
+    return () => { cancelled = true; };
+  }, []);
+  
   useEffect(() => {
     setSearchTerm(urlQuery);
   }, [urlQuery]);
@@ -144,13 +161,15 @@ export const Artists: React.FC = () => {
           : null,
       }))
       .filter((artist: Artist) => {
-      const matchesSearch: boolean = artist.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                   artist.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                   artist.category.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory: boolean = selectedCategory === 'All Categories' || artist.category === selectedCategory;
-      return matchesSearch && matchesCategory;
+      const term: string = searchTerm.toLowerCase();
+      const matchesSearch: boolean =
+        artist.name.toLowerCase().includes(term) ||
+        artist.description.toLowerCase().includes(term) ||
+        artist.genres.some((g: string) => g.toLowerCase().includes(term));
+      const matchesGenre: boolean = !selectedGenre || artist.genres.includes(selectedGenre);
+      return matchesSearch && matchesGenre;
     });
-  }, [searchTerm, selectedCategory, artists, selectedEventType, rangeByTalent]);
+  }, [searchTerm, selectedGenre, artists, selectedEventType, rangeByTalent]);
 
   // Real is_featured flag drives headliner sizing in the roster view too
   const featuredIds = useMemo(
@@ -160,7 +179,7 @@ export const Artists: React.FC = () => {
 
   const clearAllFilters = (): void => {
     setSearchTerm('');
-    setSelectedCategory('All Categories');
+    setSelectedGenre('');
     setSelectedEventType('');
     const newParams: URLSearchParams = new URLSearchParams(searchParams);
     newParams.delete('q');
@@ -231,20 +250,20 @@ export const Artists: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center gap-4 justify-center">
             <div className="flex items-center gap-2 text-xs font-black text-brand-lime uppercase tracking-widest mr-2">
               <SlidersHorizontal size={14} />
-              Filter By:
+              Genre:
             </div>
             <div className="flex flex-wrap gap-2 justify-center">
-              {categories.map((cat: string) => (
-                <button 
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
+              {genreOptions.map((g) => (
+                <button
+                  key={g.id}
+                  onClick={() => setSelectedGenre(selectedGenre === g.genre_name ? '' : g.genre_name)}
                   className={`px-5 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all ${
-                    selectedCategory === cat 
-                      ? 'bg-brand-purple text-white shadow-lg shadow-brand-purple/40 scale-105' 
+                    selectedGenre === g.genre_name
+                      ? 'bg-brand-purple text-white shadow-lg shadow-brand-purple/40 scale-105'
                       : 'bg-brand-surface text-gray-400 hover:text-white hover:bg-white/10 border border-white/5'
                   }`}
                 >
-                  {cat.split(' / ')[0]}
+                  {g.genre_name}
                 </button>
               ))}
             </div>
@@ -255,7 +274,7 @@ export const Artists: React.FC = () => {
           <span className="text-sm text-gray-500 font-medium text-left">
             Showing <span className="text-white font-bold">{filteredArtists.length}</span> results
           </span>
-          { (searchTerm || selectedCategory !== 'All Categories' || selectedEventType) && (
+          { (searchTerm || selectedGenre || selectedEventType) && (
             <button 
               onClick={clearAllFilters}
               className="text-xs font-bold text-brand-pink hover:underline uppercase tracking-widest"
