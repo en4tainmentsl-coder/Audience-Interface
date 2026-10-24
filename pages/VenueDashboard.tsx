@@ -213,6 +213,7 @@ export const VenueDashboard: React.FC = () => {
   const [expandedBooking, setExpandedBooking] = useState<string | null>(null);
   const [expandedQuoteRequest, setExpandedQuoteRequest] = useState<string | null>(null);
   const [historyPage, setHistoryPage] = useState<number>(1);
+  const [accepting, setAccepting] = useState<string | null>(null);
 
   const messageEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -360,18 +361,50 @@ if (data) venueProfile = data as unknown as VenueProfile;
     navigate('/venue-portal');
   };
 
-  const handleAcceptQuote = async (quoteId: string, requestId: string): Promise<void> => {
+    // Was two client-side PostgREST updates that created NO booking, and almost
+  // certainly changed nothing: there is no client UPDATE policy on quotes, and
+  // PostgREST returns success on zero RLS matches — the same silent failure
+  // that made handleCancelBooking below report "Booking cancelled." falsely.
+  //
+  // accept-quote calls accept_quote_and_create_booking, which does all three
+  // writes (quote -> accepted, booking INSERT, request -> converted) in one
+  // transaction. Raw fetch, not functions.invoke(): invoke does not reliably
+  // surface 4xx JSON bodies, and the RPC's messages are written for the user.
+  const handleAcceptQuote = async (quoteId: string): Promise<void> => {
+    setAccepting(quoteId);
     try {
-      const { error: quoteError } = await supabase.from('quotes').update({ quote_status: 'accepted' }).eq('id', quoteId);
-      if (quoteError) throw quoteError;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        showToast('Please sign in again.');
+        return;
+      }
 
-      const { error: requestError } = await supabase.from('quote_requests').update({ status: 'converted' }).eq('id', requestId);
-      if (requestError) throw requestError;
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/accept-quote`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ quote_id: quoteId }),
+        },
+      );
 
-      showToast("Quote accepted successfully!");
+      const body = await res.json();
+
+      if (!res.ok) {
+        showToast(body?.error ?? 'Could not accept the quote.');
+        return;
+      }
+
+      showToast('Quote accepted — your booking is confirmed.');
       loadDashboardData();
     } catch {
-      showToast("Failed to accept quote.");
+      showToast('Could not accept the quote. Please try again.');
+    } finally {
+      setAccepting(null);
     }
   };
 
@@ -796,10 +829,11 @@ if (data) venueProfile = data as unknown as VenueProfile;
                                         <>
                                           <Button 
                                             size="sm" 
-                                            onClick={() => handleAcceptQuote(quote.id, req.id)}
+                                            onClick={() => handleAcceptQuote(quote.id)}
+                                            disabled={accepting === quote.id}
                                             className="bg-brand-lime text-brand-dark font-black text-[10px] px-3 py-1 rounded-full animate-fade-in"
                                           >
-                                            Accept
+                                            {accepting === quote.id ? 'Accepting…' : 'Accept'}
                                           </Button>
                                           <Button 
                                             size="sm" 
