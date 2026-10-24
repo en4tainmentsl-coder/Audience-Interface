@@ -41,6 +41,26 @@ interface ClientDashboardBooking {
   };
 }
 
+// What the client is shown of a quote. Deliberately NOT commission_amount or
+// talent_payout_amount — those are En4's margin and the performer's payout,
+// and quotes_client_read grants row access, not column access, so keeping
+// them out is a discipline of the select string below.
+interface ClientDashboardQuoteOffer {
+  id: string;
+  quoted_amount: string;
+  travel_fee: string | null;
+  equipment_fee: string | null;
+  sscl_amount: string | null;
+  vat_amount: string | null;
+  gateway_fee_amount: string | null;
+  total_client_price: string | null;
+  quote_status: string;
+  expires_at: string;
+  notes_to_client: string | null;
+  equipment_provided_by: string;
+  performer_count: number | null;
+}
+
 interface ClientDashboardQuote {
   id: string;
   event_type: string;
@@ -50,6 +70,7 @@ interface ClientDashboardQuote {
     stage_name: string;
     profile_photo_url?: string;
   };
+  quotes?: ClientDashboardQuoteOffer[];
 }
 
 interface ClientDashboardFavorite {
@@ -66,6 +87,8 @@ export const ClientDashboard: React.FC = () => {
   const [client, setClient] = useState<ClientProfile | null>(null);
   const [bookings, setBookings] = useState<ClientDashboardBooking[]>([]);
   const [quotes, setQuotes] = useState<ClientDashboardQuote[]>([]);
+  const [accepting, setAccepting] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<ClientDashboardFavorite[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const navigate = useNavigate();
@@ -96,7 +119,22 @@ export const ClientDashboard: React.FC = () => {
           event_type,
           starts_at,
           status,
-          profiles_talent (stage_name, profile_photo_url)
+          profiles_talent (stage_name, profile_photo_url),
+          quotes (
+            id,
+            quoted_amount,
+            travel_fee,
+            equipment_fee,
+            sscl_amount,
+            vat_amount,
+            gateway_fee_amount,
+            total_client_price,
+            quote_status,
+            expires_at,
+            notes_to_client,
+            equipment_provided_by,
+            performer_count
+          )
         `)
         .eq('client_user_id', userId)
         .order('created_at', { ascending: false });
@@ -119,6 +157,62 @@ export const ClientDashboard: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Accepting a quote is NOT a client-side update. There is no client UPDATE
+  // policy on quotes, and the three writes (quote -> accepted, booking INSERT,
+  // request -> converted) must share one transaction — accept-quote calls a
+  // Postgres function that does all three. Raw fetch, not functions.invoke():
+  // invoke does not reliably surface 4xx JSON bodies, and the RPC's error
+  // messages are written to be read by the client.
+  const handleAcceptQuote = async (quoteId: string): Promise<void> => {
+    setAccepting(quoteId);
+    setActionMessage(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setActionMessage('Please sign in again.');
+        return;
+      }
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/accept-quote`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ quote_id: quoteId }),
+        },
+      );
+
+  // PostgREST serialises numeric as a STRING ("57360.62"), so every money
+  // value must go through Number() before formatting. This is the same trap
+  // that made FlexArtistCard crash on .toFixed(1).
+  const money = (v: string | null): string =>
+    v == null ? '—' : `LKR ${Number(v).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+      const body = await res.json();
+
+      if (!res.ok) {
+        setActionMessage(body?.error ?? 'Could not accept the quote.');
+        return;
+      }
+
+      setActionMessage('Quote accepted — your booking is confirmed.');
+      fetchData(session.user.id);
+    } catch {
+      setActionMessage('Could not accept the quote. Please try again.');
+    } finally {
+      setAccepting(null);
+    }
+  };
+  // PostgREST serialises numeric as a STRING ("57360.62"), so every money
+  // value must go through Number() before formatting. This is the same trap
+  // that made FlexArtistCard crash on .toFixed(1).
+  const money = (v: string | null): string =>
+    v == null ? '—' : `LKR ${Number(v).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   useEffect(() => {
     const checkAuth = async (): Promise<void> => {
@@ -300,6 +394,12 @@ export const ClientDashboard: React.FC = () => {
                 </h2>
               </div>
 
+              {actionMessage && (
+                <div className="mb-4 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-gray-200">
+                  {actionMessage}
+                </div>
+              )}
+              
               {quotes.length === 0 ? (
                 <div className="text-center py-12 border border-dashed border-white/10 rounded-xl" id="no-open-quotes-dashboard">
                   <p className="text-gray-500">No open quote requests.</p>
@@ -309,25 +409,82 @@ export const ClientDashboard: React.FC = () => {
                   {quotes.map((quote: ClientDashboardQuote) => (
                     <div
                       key={quote.id}
-                      className="bg-brand-dark/50 border border-white/5 rounded-xl p-4 flex flex-col md:flex-row justify-between gap-4"
+                      className="bg-brand-dark/50 border border-white/5 rounded-xl p-4 space-y-4"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-white/5 rounded-lg flex items-center justify-center text-brand-purple">
-                          <Music className="w-6 h-6" />
+                      <div className="flex flex-col md:flex-row justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-white/5 rounded-lg flex items-center justify-center text-brand-purple">
+                            <Music className="w-6 h-6" />
+                          </div>
+                          <div className="space-y-1">
+                            <h3 className="font-bold text-lg">{quote.profiles_talent?.stage_name || 'General Request'}</h3>
+                            <p className="text-sm text-gray-400">{quote.event_type} — {lkDate(quote.starts_at)}</p>
+                          </div>
                         </div>
-                        <div className="space-y-1">
-                          <h3 className="font-bold text-lg">{quote.profiles_talent?.stage_name || 'General Request'}</h3>
-                          <p className="text-sm text-gray-400">{quote.event_type} — {lkDate(quote.starts_at)}</p>
+                        <div className="flex items-center gap-3">
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                            quote.status === 'quoted' ? 'bg-brand-purple/20 text-brand-purple' : 'bg-white/10 text-gray-400'
+                          }`}>
+                            {quote.status}
+                          </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                          quote.status === 'quoted' ? 'bg-brand-purple/20 text-brand-purple' : 'bg-white/10 text-gray-400'
-                        }`}>
-                          {quote.status}
-                        </span>
-                        <Button variant="outline" size="sm">View</Button>
-                      </div>
+
+                      {/* The offer itself. quotes_one_per_request means there is at
+                          most one, but PostgREST returns an array for the embed. */}
+                      {quote.quotes?.[0] && quote.quotes[0].quote_status === 'pending' && (
+                        <div className="border-t border-white/5 pt-4 space-y-3">
+                          <div className="space-y-1 text-sm">
+                            <div className="flex justify-between text-gray-400">
+                              <span>Performance fee</span><span>{money(quote.quotes[0].quoted_amount)}</span>
+                            </div>
+                            {Number(quote.quotes[0].travel_fee ?? 0) > 0 && (
+                              <div className="flex justify-between text-gray-400">
+                                <span>Travel</span><span>{money(quote.quotes[0].travel_fee)}</span>
+                              </div>
+                            )}
+                            {Number(quote.quotes[0].equipment_fee ?? 0) > 0 && (
+                              <div className="flex justify-between text-gray-400">
+                                <span>Equipment</span><span>{money(quote.quotes[0].equipment_fee)}</span>
+                              </div>
+                            )}
+                            {Number(quote.quotes[0].sscl_amount ?? 0) > 0 && (
+                              <div className="flex justify-between text-gray-400">
+                                <span>SSCL</span><span>{money(quote.quotes[0].sscl_amount)}</span>
+                              </div>
+                            )}
+                            {Number(quote.quotes[0].vat_amount ?? 0) > 0 && (
+                              <div className="flex justify-between text-gray-400">
+                                <span>VAT</span><span>{money(quote.quotes[0].vat_amount)}</span>
+                              </div>
+                            )}
+                            {Number(quote.quotes[0].gateway_fee_amount ?? 0) > 0 && (
+                              <div className="flex justify-between text-gray-400">
+                                <span>Payment processing</span><span>{money(quote.quotes[0].gateway_fee_amount)}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between font-bold text-white pt-2 border-t border-white/5">
+                              <span>Total</span><span>{money(quote.quotes[0].total_client_price)}</span>
+                            </div>
+                          </div>
+
+                          {quote.quotes[0].notes_to_client && (
+                            <p className="text-sm text-gray-400 italic">{quote.quotes[0].notes_to_client}</p>
+                          )}
+
+                          <p className="text-xs text-gray-500">
+                            Valid until {lkDate(quote.quotes[0].expires_at)}. Accepting confirms the booking.
+                          </p>
+
+                          <Button
+                            onClick={() => handleAcceptQuote(quote.quotes![0].id)}
+                            disabled={accepting === quote.quotes[0].id}
+                            size="sm"
+                          >
+                            {accepting === quote.quotes[0].id ? 'Accepting…' : 'Accept quote'}
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
