@@ -39,7 +39,6 @@ export interface Quote {
   expires_at?: string;
   notes_to_client?: string;
   travel_fee?: number;
-  equipment_fee?: number;
   profiles_talent?: {
     stage_name: string;
     profile_photo_url: string;

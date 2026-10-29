@@ -70,7 +70,6 @@ interface BookingQuote {
   quote_status: string;
   notes_to_client?: string;
   travel_fee?: number;
-  equipment_fee?: number;
   profiles_talent?: {
     stage_name: string;
     profile_photo_url?: string;
@@ -264,7 +263,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
       ] = await Promise.all([
         // 2. Quote Requests
         supabase.from('quote_requests')
-          .select('*, quotes(id, talent_id, quoted_amount, total_client_price, quote_status, expires_at, notes_to_client, profiles_talent(stage_name, profile_photo_url, talent_stats(rating_average, rating_count), type_of_performer))')
+          .select('*, quotes(id, talent_id, quoted_amount, travel_fee, total_client_price, quote_status, expires_at, notes_to_client, profiles_talent(stage_name, profile_photo_url, talent_stats(rating_average, rating_count), type_of_performer))')
           .eq('venue_id', venueProfile.id)
           .order('created_at', { ascending: false }),
 
@@ -809,10 +808,6 @@ if (data) venueProfile = data as unknown as VenueProfile;
                                       <div>
                                         <p className="text-[8px] uppercase font-black text-gray-500">Travel</p>
                                         <p className="text-xs font-bold text-white">{quote.travel_fee || 0}</p>
-                                      </div>
-                                      <div>
-                                        <p className="text-[8px] uppercase font-black text-gray-500">Equip</p>
-                                        <p className="text-xs font-bold text-white">{quote.equipment_fee || 0}</p>
                                       </div>
                                     </div>
                                     <p className="text-sm italic text-gray-400 border-l-2 border-brand-purple/30 pl-3">"{quote.notes_to_client}"</p>
