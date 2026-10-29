@@ -49,7 +49,8 @@ interface ClientDashboardQuoteOffer {
   id: string;
   quoted_amount: string;
   travel_fee: string | null;
-  equipment_fee: string | null;
+  meals_fee: string | null;
+  accommodation_fee: string | null;
   sscl_amount: string | null;
   vat_amount: string | null;
   gateway_fee_amount: string | null;
@@ -57,7 +58,6 @@ interface ClientDashboardQuoteOffer {
   quote_status: string;
   expires_at: string;
   notes_to_client: string | null;
-  equipment_provided_by: string;
   performer_count: number | null;
 }
 
@@ -124,7 +124,8 @@ export const ClientDashboard: React.FC = () => {
             id,
             quoted_amount,
             travel_fee,
-            equipment_fee,
+            meals_fee,
+            accommodation_fee,
             sscl_amount,
             vat_amount,
             gateway_fee_amount,
@@ -132,7 +133,6 @@ export const ClientDashboard: React.FC = () => {
             quote_status,
             expires_at,
             notes_to_client,
-            equipment_provided_by,
             performer_count
           )
         `)
@@ -443,9 +443,14 @@ export const ClientDashboard: React.FC = () => {
                                 <span>Travel</span><span>{money(quote.quotes[0].travel_fee)}</span>
                               </div>
                             )}
-                            {Number(quote.quotes[0].equipment_fee ?? 0) > 0 && (
+                            {Number(quote.quotes[0].meals_fee ?? 0) > 0 && (
                               <div className="flex justify-between text-gray-400">
-                                <span>Equipment</span><span>{money(quote.quotes[0].equipment_fee)}</span>
+                                <span>Meals</span><span>{money(quote.quotes[0].meals_fee)}</span>
+                              </div>
+                            )}
+                            {Number(quote.quotes[0].accommodation_fee ?? 0) > 0 && (
+                              <div className="flex justify-between text-gray-400">
+                                <span>Accommodation</span><span>{money(quote.quotes[0].accommodation_fee)}</span>
                               </div>
                             )}
                             {Number(quote.quotes[0].sscl_amount ?? 0) > 0 && (
