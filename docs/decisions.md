@@ -18,7 +18,7 @@ Verified-wrong assumptions live in [`corrections.md`](./corrections.md).
 |---|---|---|
 | D-001 | Tax (VAT + SSCL) disabled for v1 | Settled |
 | D-002 | Definition of `platform_revenue` | Settled |
-| D-003 | Commission direction and commission base | Settled — amended 2026-09-08 |
+| D-003 | Commission direction and commission base | Settled — amended 2026-09-08, **2026-10-25** |
 | D-003a | `payments.commission_portion` must derive from the booking | Settled; **not enforced** |
 | D-004 | Fee absorption — PayHere vs HNB | Settled |
 | D-005 | Travel is a threshold, not an allowance | Settled |
@@ -114,7 +114,7 @@ The two have diverged. SSCL bites first. **Two independent monitoring flags are 
 **Date:** 2026-09-04
 **Status:** Settled, implemented
 
-**Decision.** Commission is a **markup**, not a deduction. Talent receives their quoted fee in full; 21% is added on top and paid by the client.
+**Decision (SUPERSEDED 2026-10-25 — see the amendment below).** Commission is a **markup**, not a deduction. Talent receives their quoted fee in full; 21% is added on top and paid by the client.
 
 **Commission base is the performance fee only** — not travel, not equipment.
 
@@ -136,6 +136,45 @@ The two have diverged. SSCL bites first. **Two independent monitoring flags are 
 **The rule is NOT yet enforced at the payments layer.** See D-003a below.
 
 ---
+
+### Amendment, 2026-10-25 — commission is two legs, and only one is a markup
+
+**Supersedes the original Decision above.** That entry describes a single
+21% markup on the client side. Both halves of it are now wrong.
+
+**Rule.** Commission has two independent legs:
+
+| Leg | Direction | Charged on | Rate |
+|---|---|---|---|
+| Client-side | **Added** to the client bill | The full talent bill — fee **plus travel, meals and accommodation** | 10% |
+| Talent-side | **Deducted** from the talent payout | The performance fee **only** | 10% |
+
+**The platform takes 20, not 21.** On a fee of 100: the client is billed 110,
+the talent is paid 90. The talent-side 10% is charged on the talent's own fee
+of 100, **not** on the grossed-up client figure of 110. Charging it on 110
+would yield 11 and a total of 21 — that is the error this amendment exists to
+correct, and it is a plausible enough reading that it was briefly the settled
+position.
+
+**"Talent receives their quoted fee in full" is no longer true.** The
+client-side leg is still a markup. The talent-side leg is a genuine
+deduction. The original entry's framing predates the second leg entirely.
+
+**"Commission base is the performance fee only" now splits.** It holds for
+the talent-side leg. It does **not** hold for the client-side leg, which is
+charged on travel, meals and accommodation as well.
+
+**Meals and accommodation reach the talent whole** — no commission is
+deducted from either.
+
+**Not yet implemented.** `compute_quote_pricing` still computes a single
+21% leg, and `enforce_quote_writes` hardcodes `21.00` separately from the
+column default. The rates now live in `rate_configs`, seeded at 10/10 but
+not yet read. The pricing rewrite is Stage 2C.
+
+**Unchanged by this amendment:** the 2026-09-08 rule that commission is
+computed once at quote time and never recomputed downstream. That applies to
+both legs.
 
 ### D-003a — `payments.commission_portion` must derive from the booking
 
@@ -229,7 +268,7 @@ convenience_fee_base = commission
 refund = client_total − convenience_fee_total
 ```
 
-**The 20% portion is talent compensation and is paid out to the talent.** It is not En4 revenue — the talent may already have committed to an equipment renter and a travel provider. En4 retains only the 21% commission.
+**The 20% portion is talent compensation and is paid out to the talent.** It is not En4 revenue — the talent may already have committed to an equipment renter and a travel provider. En4 retains only the 20% commission.
 
 **Storage.** `bookings.cancellation_fee_amount` holds the En4 portion; `talent_compensation_amount` holds the 20%. **Do not record the convenience fee as one lump** — the 20% must never be booked as revenue.
 
