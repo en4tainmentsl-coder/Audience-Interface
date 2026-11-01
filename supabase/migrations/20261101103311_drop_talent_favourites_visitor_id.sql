@@ -23,6 +23,14 @@ begin
   end if;
 end $$;
 
+-- The baseline's anon INSERT policy fav_anon_insert depends on visitor_id.
+-- It was removed from the live database on 2026-10-04 when anonymous hearting
+-- was dropped by decision, but that removal was never written as a migration,
+-- so replaying this history recreates it and the column drop below fails.
+-- Caught by CI 2026-11-01. No-op against live, where the policy is absent.
+-- Wider repo/live policy drift is tracked separately.
+drop policy if exists fav_anon_insert on public.talent_favourites;
+
 drop index if exists public.talent_favourites_visitor_talent_unique;
 
 alter table public.talent_favourites
