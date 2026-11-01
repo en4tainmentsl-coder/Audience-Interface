@@ -279,29 +279,42 @@ refund = client_total − convenience_fee_total
 
 **Storage.** `bookings.cancellation_fee_amount` holds the En4 portion; `talent_compensation_amount` holds the 20%. **Do not record the convenience fee as one lump** — the 20% must never be booked as revenue.
 
-### Amendment, 2026-11-01 — two commission legs, no equipment, meals and accommodation included
+### Amendment, 2026-11-01 — client-side commission only, no equipment, meals and accommodation included
 
 **Supersedes the original Decision above**, which predates both the
 two-sided commission and the retirement of the equipment fee.
 
-**Rule.** On a client or venue cancellation:
+**Rule.** On a client or venue cancellation, En4 retains:
 
+1. **The client-side commission** — charged on the full talent bill
+2. **20% of the full talent bill** — paid out to the talent as compensation
+3. **The gateway fee** — the gateway does not refund its own fee, and the
+   client caused the cancellation, so the client bears it
 
-**En4 retains both commission legs.** A cancellation should not cost En4 the
-margin it had earned, and both legs were already inside the client total —
-the client-side leg added to the bill, the talent-side leg deducted from the
-payout. Both are funded by the client through the convenience fee. The
-talent-side leg is **not** taken out of the talent's compensation: a talent
-who has just lost a booking does not also pay commission on their
-consolation.
+**The talent-side commission is NOT retained.** It is a deduction from a
+performance payout that is not happening, so it does not arise. En4 earns
+only its client-side leg on a cancelled booking.
+
+**The identity — state it this way, not as an itemised formula:**
+
+> `client_refund = 0.80 × talent_bill`
+
+Algebraically exact for any mix of lines. At 150 km: talent bill 165,000,
+client paid 187,694, En4 retains 55,694 (16,500 + 33,000 + 6,194), refund
+132,000. At 25 km: talent bill 107,500, refund 86,000. Always 80%.
+
+One sentence a client can verify with a calculator beats a four-term
+formula. People read cancellation terms only when they are already unhappy.
+
+**"Talent bill" means the whole of it:** performance fee + travel + meals +
+accommodation. No line is excluded — by cancellation time the artist may
+already have booked a room and committed to the trip.
+
+**Flat, not tiered by notice period** (2026-10-25). This also closes the
+0/40/80 refund ladder deferred 2026-10-04.
 
 **Equipment is gone from the base.** `equipment_fee` no longer exists
 (D-042); the talent's rate is all-inclusive.
-
-**Meals and accommodation are in the base.** The stated reason for the 20%
-is that the talent may already have committed money to third parties. A
-booked hotel room is precisely that case, so both attract the 20% on the
-same logic as travel.
 
 **Known weakness, recorded not solved.** 20% is a proxy for committed cost,
 not a measure of it. A non-refundable hotel booking is lost at 100%, not
@@ -314,6 +327,7 @@ convenience fee as one lump** — the 20% must not be booked as revenue.
 
 **Not yet implemented.** No cancellation logic reads these columns; both are
 zero on every row.
+
 ---
 
 ## D-009 — Talent cancellation: full client refund plus penalty
