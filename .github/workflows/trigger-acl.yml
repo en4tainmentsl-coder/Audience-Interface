@@ -1,11 +1,12 @@
 name: Trigger Function ACL
 
 on:
+  # Deliberately NOT path-filtered. This check is required in branch
+  # protection, and a required check that is path-filtered never reports a
+  # status on PRs that do not match -- GitHub then waits on it forever and the
+  # PR cannot merge. Caught on PR #191, a docs-only change, 2026-11-01.
   pull_request:
     branches: [main]
-    paths:
-      - 'supabase/migrations/**'
-      - '.github/workflows/trigger-acl.yml'
 
 permissions:
   contents: read
