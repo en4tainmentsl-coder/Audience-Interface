@@ -8,6 +8,7 @@ place as the code they govern.
 |---|---|---|
 | [`decisions.md`](./decisions.md) | The numbered decision register (D-001 onward), plus open decisions | Asking "why is it like this", or before proposing a change to settled behaviour |
 | [`corrections.md`](./corrections.md) | Things widely assumed to exist that do not, each verified live on a dated check | Before designing anything that depends on an assumption you have not personally verified |
+| [`legal/`](./legal/README.md) | The public-facing legal documents for En4tainment and En410, in draft | Before changing behaviour a published policy describes, or when asked what we have told users |
 
 ## Rules for changing these files
 
