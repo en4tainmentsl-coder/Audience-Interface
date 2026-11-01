@@ -167,10 +167,17 @@ charged on travel, meals and accommodation as well.
 **Meals and accommodation reach the talent whole** — no commission is
 deducted from either.
 
-**Not yet implemented.** `compute_quote_pricing` still computes a single
-21% leg, and `enforce_quote_writes` hardcodes `21.00` separately from the
-column default. The rates now live in `rate_configs`, seeded at 10/10 but
-not yet read. The pricing rewrite is Stage 2C.
+**Implemented 2026-10-31** (PR #181, migration `20261031170000`).
+`compute_quote_pricing` computes both legs; `enforce_quote_writes` stamps
+the rates from `rate_configs` and no longer hardcodes anything. The
+`commission_amount` and `commission_rate_percent` columns were renamed to
+`commission_client_*` on both `quotes` and `bookings`, so the singular name
+survives nowhere.
+
+Verified against a worked case: a fee of 14,000 with 4,986 of travel bills
+the client 21,597.31 and pays the talent 17,586.00 — a client-side leg of
+1,898.60 on the full bill, and a talent-side leg of 1,400.00 on the fee
+alone.
 
 **Unchanged by this amendment:** the 2026-09-08 rule that commission is
 computed once at quote time and never recomputed downstream. That applies to
