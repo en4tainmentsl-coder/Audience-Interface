@@ -70,6 +70,7 @@ Verified-wrong assumptions live in [`corrections.md`](./corrections.md).
 | D-051 | The fee is the category rate; duration prices nothing | Settled, implemented |
 | D-052 | Controlled-disclosure views for browsing without rates | Settled, implemented |
 | D-053 | Favourite notes are written once, not edited | Settled, implemented |
+| D-054 | Two approvals or nothing; no single-approver override | Settled — **unbuilt** |
 
 ---
 
@@ -1495,6 +1496,47 @@ by widening `fav_owner_select`, so it does not reopen this entry.
 
 Shipped in migration `20261101103311`, alongside the drop of the dead
 `visitor_id` column from the same table.
+
+---
+## D-054 — Two approvals or nothing; there is no single-approver override
+
+**Date:** 2026-11-01
+**Status:** Settled — **unbuilt**
+**Decided by:** Praveen
+**Source:** Todoist `6hh2W36XVVMHXhFX`
+
+**Decision.** A talent profile goes live only when two **distinct** admins have
+recorded an approval. There is no override, no escalation after N days, and no
+mechanism by which one person can push a profile live alone.
+
+**What was rejected, and why it will be proposed again.** A documented
+single-approver override that logs loudly was considered and rejected. With four
+approvers and two required, onboarding stalls whenever people are away — at
+launch volumes a single holiday week could hold up every new artist, which is
+exactly when talent supply matters most. That pressure is real and will arrive.
+The answer is to add approvers or move faster, not to lower the threshold.
+
+**Why no override is the right trade.** The second reviewer exists because the
+first one is looking at a NIC document and can be wrong. An override is invoked
+precisely when nobody has time to look carefully, which is when the second pair
+of eyes is worth most. An exception path that logs loudly still permits the
+thing it logs.
+
+**Enforcement is a trigger, not the admin UI.** `approval_status` flips to
+`approved` only on two distinct approver IDs. One approver must not be able to
+approve twice. The UI is the most likely thing to be bypassed; the database is
+not.
+
+**Dependency, and it is not technical.** Dual approval is meaningless while four
+people share the `admin.001` Directus account — a second approval is
+unattributable. Individual logins come first. Verified live 2026-11-01:
+`talent_identity` still carries a single `verified_by`/`verified_at` pair and no
+`talent_approvals` table exists.
+
+**Do not build the distinct-approver trigger before individual logins exist.**
+Against one shared account the check can never be satisfied, so every submission
+would stall at one approval permanently. The enforcement would break onboarding
+rather than secure it.
 
 ---
 # Open Decisions
