@@ -69,6 +69,7 @@ Verified-wrong assumptions live in [`corrections.md`](./corrections.md).
 | D-050 | Packages are fixed and platform-defined; 'other' removed | Settled, implemented |
 | D-051 | The fee is the category rate; duration prices nothing | Settled, implemented |
 | D-052 | Controlled-disclosure views for browsing without rates | Settled, implemented |
+| D-053 | Favourite notes are written once, not edited | Settled, implemented |
 
 ---
 
@@ -1460,6 +1461,42 @@ Only spot performance is a range; the rest are stored as min = max. The **maximu
 
 ---
 
+## D-053 — Favourite notes are written once, not edited
+
+**Date:** 2026-11-01
+**Status:** Settled, implemented
+**Decided by:** Praveen
+**Source:** Todoist `6hpcFGMQRVRH6jHX`
+
+**Decision.** A client may attach `notes` to a row in `talent_favourites` when
+they favourite a talent, and may not edit that note afterwards. No
+owner-scoped UPDATE policy exists or will be added. Changing a note means
+deleting the favourite and re-adding it.
+
+**Why this needs an entry at all.** The table carries owner-scoped INSERT,
+SELECT and DELETE and no UPDATE. Read from the schema alone that looks like a
+policy someone forgot to write, and the obvious "fix" is to add one. It is not
+an oversight. Verified live 2026-11-01: `fav_auth_insert`, `fav_owner_select`,
+`rh_auth_delete`, `rh_admin_all`, `service_role_full_access`, and nothing else.
+
+**Accepted consequence.** Delete-and-re-add resets `created_at`, so correcting
+a typo silently resets how long the talent has been favourited. Acceptable
+while no surface displays that date. If one ever does, this entry is the thing
+to revisit — not the policy set.
+
+**Considered and rejected:** an owner-scoped UPDATE policy on the grounds that
+a private note is the client's own data and PDPA s.14 gives a correction right
+over it. Rejected as a new write path on a table that had a world-readable
+SELECT policy as recently as 2026-10-20, for a field no UI reads yet.
+
+**Not decided here.** Whether a talent ever sees favourite counts remains open
+(`6hPVPG7pc72QxvRX`). That would be served by a SECURITY DEFINER aggregate, not
+by widening `fav_owner_select`, so it does not reopen this entry.
+
+Shipped in migration `20261101103311`, alongside the drop of the dead
+`visitor_id` column from the same table.
+
+---
 # Open Decisions
 
 These are not settled. Each links to its Todoist task. When one is resolved it moves up into the numbered register above and is deleted from this list.
