@@ -71,6 +71,7 @@ Verified-wrong assumptions live in [`corrections.md`](./corrections.md).
 | D-052 | Controlled-disclosure views for browsing without rates | Settled, implemented |
 | D-053 | Favourite notes are written once, not edited | Settled, implemented |
 | D-054 | Two approvals or nothing; no single-approver override | Settled — **unbuilt** |
+| D-055 | Each side's documents disclose only that side's commission leg | Settled — **not yet written into the documents** |
 
 ---
 
@@ -1537,6 +1538,70 @@ unattributable. Individual logins come first. Verified live 2026-11-01:
 Against one shared account the check can never be satisfied, so every submission
 would stall at one approval permanently. The enforcement would break onboarding
 rather than secure it.
+
+---
+## D-055 — Each side's documents disclose only that side's commission leg
+
+**Date:** 2026-11-01
+**Status:** Settled — **not yet written into the documents**
+**Decided by:** Praveen
+**Source:** Todoist `6hh4WRQQgX7FVRj5`
+
+**Decision.** Commission is disclosed per audience, in the documents that
+audience reads, and the two legs are never named together.
+
+| Document set | Discloses | Must not mention |
+|---|---|---|
+| `legal/client-venue-*` (website) | The 10% **added** to the client bill, charged on the full bill including travel, meals and accommodation | The talent-side deduction |
+| `legal/talent-*` (En410) | The 10% **deducted** from the talent payout, charged on the performance fee only | The client-side addition |
+
+No combined figure is published anywhere. There is no "20%" in marketing copy
+or in either document.
+
+**Rationale (Praveen).** Complete disclosure is unnecessary and creates
+problems. The population who would compare both sides is small.
+
+**Argued and overruled, recorded per README rule 1.** Claude's position was
+that the talent-side leg is arithmetic every artist performs unaided — they
+quote 100 and are paid 90 on their first booking — so it surfaces regardless,
+and the choice is only whether they learn it from En4 or discover it. That
+argument supports disclosing the talent leg in the talent documents, which
+this decision does. What was not adopted is naming the client-side leg to
+talent. The entry records this so a future reader sees the objection was
+considered, not missed.
+
+**The split does not license vagueness.** Within each document the disclosed
+leg must carry its base:
+
+- Talent documents: **10% of the performance fee only.** Travel, meals and
+  accommodation reach the talent whole and no commission is taken from them.
+  Naming a deduction without its base invites the artist to assume the worst
+  base, which is worse than silence.
+- Client documents: **10% added, on the full bill** including travel, meals
+  and accommodation.
+
+**Existing wording this invalidates.** `legal/talent-terms.md` defines
+Commission as "the percentage fee retained by REAP Holdings from the gross
+booking amount". Wrong twice under this decision — it names a base that is not
+the talent leg's base, and "gross booking amount" implies the client total,
+which talent documents are not to reference. Must be rewritten in the same
+pass.
+
+**Not settled here.** What the artist is shown in the **app** at quote
+submission. D-051 already fixes the principle — `preview_quote_pricing`
+returns payout only, no commission and no taxes — but whether the payout is
+shown bare or itemised as fee minus commission is open. This entry governs
+documents, not UI.
+
+**Invoices are a separate problem.** The two legs sit on different bases, so
+an invoice must show each against its own base or the line items will not
+reconcile to the total, which IRD itemisation depends on. The self-billing
+model raises invoices in the talent's name, which makes an unexplained
+deduction a reconciliation failure rather than a presentation choice. Blocked
+on Ragu's agent-vs-principal answer.
+
+**See also** D-003 (amended 2026-10-25) for the two-leg model itself, D-004
+for gateway fee absorption, and D-051 for payout-only previews.
 
 ---
 # Open Decisions
