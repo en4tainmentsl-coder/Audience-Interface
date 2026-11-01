@@ -258,7 +258,7 @@ At 12 km one-way the charge is for 12 km, not 2 km. Cliff edge is deliberate: 9.
 **Date:** 2026-09-04
 **Status:** Settled
 
-**Decision.** On a client or venue cancellation:
+**Decision (SUPERSEDED 2026-11-01 — see the amendment below).** On a client or venue cancellation:
 
 ```
 convenience_fee_base = commission
@@ -272,6 +272,41 @@ refund = client_total − convenience_fee_total
 
 **Storage.** `bookings.cancellation_fee_amount` holds the En4 portion; `talent_compensation_amount` holds the 20%. **Do not record the convenience fee as one lump** — the 20% must never be booked as revenue.
 
+### Amendment, 2026-11-01 — two commission legs, no equipment, meals and accommodation included
+
+**Supersedes the original Decision above**, which predates both the
+two-sided commission and the retirement of the equipment fee.
+
+**Rule.** On a client or venue cancellation:
+
+
+**En4 retains both commission legs.** A cancellation should not cost En4 the
+margin it had earned, and both legs were already inside the client total —
+the client-side leg added to the bill, the talent-side leg deducted from the
+payout. Both are funded by the client through the convenience fee. The
+talent-side leg is **not** taken out of the talent's compensation: a talent
+who has just lost a booking does not also pay commission on their
+consolation.
+
+**Equipment is gone from the base.** `equipment_fee` no longer exists
+(D-042); the talent's rate is all-inclusive.
+
+**Meals and accommodation are in the base.** The stated reason for the 20%
+is that the talent may already have committed money to third parties. A
+booked hotel room is precisely that case, so both attract the 20% on the
+same logic as travel.
+
+**Known weakness, recorded not solved.** 20% is a proxy for committed cost,
+not a measure of it. A non-refundable hotel booking is lost at 100%, not
+20%. The proxy is kept because the alternative is adjudicating receipts,
+which nobody has capacity for. Revisit if talent complain about it.
+
+**Storage is unchanged.** `bookings.cancellation_fee_amount` holds the En4
+portion, `talent_compensation_amount` holds the 20%. **Never record the
+convenience fee as one lump** — the 20% must not be booked as revenue.
+
+**Not yet implemented.** No cancellation logic reads these columns; both are
+zero on every row.
 ---
 
 ## D-009 — Talent cancellation: full client refund plus penalty
