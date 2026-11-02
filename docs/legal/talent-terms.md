@@ -51,7 +51,7 @@ If you do not agree to these Terms, you must not register for or use En410.
 
 - Platform / Marketplace — collectively, the En4tainment website and the En410 application, operated by REAP Holdings.
 
-- Commission — the percentage fee retained by REAP Holdings from the gross booking amount, as disclosed at the time of quoting or booking.
+- Commission — the fee retained by REAP Holdings from your performance fee for each Booking, charged at the rate stated in Section 7.
 
 - Personal Data, Processing, Data Subject, Controller — as defined in the Personal Data Protection Act, No. 9 of 2022 of Sri Lanka (“PDPA”) and as further explained in our Privacy Policy.
 
@@ -105,7 +105,7 @@ If you do not agree to these Terms, you must not register for or use En410.
 
 **7. Fees, Commission & Payouts**
 
-21. REAP Holdings charges a Commission on the gross amount of each Booking, calculated and disclosed at the time of quoting and reflected in the Booking's commission and net payout figures.
+21. REAP Holdings charges a Commission of 10% of your performance fee for each Booking. Commission is calculated on your performance fee only — travel, meals and accommodation amounts are paid to you in full and are not subject to Commission. The Commission and your resulting net payout are both shown to you before you submit a Quote, and are reflected in the Booking’s payout figures.
 
 22. Payouts are disbursed to your verified bank account according to the payout schedule associated with your account (daily, weekly, monthly, or manual), following successful completion of the Booking and any applicable holdback period.
 
@@ -222,6 +222,14 @@ These Terms, together with our Privacy Policy and any Booking-specific Contract,
 - Added a data retention/deletion cross-reference to Section 16 on termination.
 
 - Filled in the missing Section 7 Commission-disclosure clause (previously blank in the source document) by cross-referencing the Commission definition and disclosure-at-quoting mechanism already established in Sections 2 and 7(1).
+
+**Change Log — Commission Disclosure Amendment, 2 November 2026**
+
+- Section 2 (Definitions): replaced the Commission definition. The previous wording described Commission as a percentage of the "gross booking amount" — an incorrect base. Commission is charged on the Talent's performance fee only.
+
+- Section 7(21): restated the Commission clause to name the rate (10%) and the base (performance fee only), and to record expressly that travel, meals and accommodation reach the Talent in full.
+
+- Section 7(21): the clause now commits to showing the Talent both the Commission and the resulting net payout before a Quote is submitted.
 
 ---
 
