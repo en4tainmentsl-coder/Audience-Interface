@@ -67,7 +67,7 @@ Verified-wrong assumptions live in [`corrections.md`](./corrections.md).
 | D-048 | Email delivery outcomes are recorded platform-wide | Settled, implemented |
 | D-049 | Retention rules are scheduled, and their health is visible | Settled, implemented |
 | D-050 | Packages are fixed and platform-defined; 'other' removed | Settled, implemented |
-| D-051 | The fee is the category rate; duration prices nothing | Settled, implemented |
+| D-051 | The fee is the category rate; duration prices nothing | Settled, implemented — amendment 2026-11-02 not built |
 | D-052 | Controlled-disclosure views for browsing without rates | Settled, implemented |
 | D-053 | Favourite notes are written once, not edited | Settled, implemented |
 | D-054 | Two approvals or nothing; no single-approver override | Settled — **unbuilt** |
@@ -1420,7 +1420,7 @@ Only spot performance is a range; the rest are stored as min = max. The **maximu
 ## D-051 — The fee is the category rate; duration prices nothing
 
 **Date:** 2026-09-28
-**Status:** Settled, implemented
+**Status:** Settled, implemented — **amended 2026-11-02; amendment not built**
 
 **Decision.** `enforce_quote_writes` set `quoted_amount` to `round(req_rate * greatest(1, req_hours / 4), 2)`. With fixed packages that multiplier is wrong. The fee is what the talent charges for the category, full stop.
 
@@ -1441,6 +1441,37 @@ Only spot performance is a range; the rest are stored as min = max. The **maximu
 **`budget_min` and `budget_max` dropped.** No form ever wrote them; they were only displayed, in `VenueDashboard`, where they rendered as an empty range. The price range already expresses budget, and a budget shown to a talent invites quoting to it rather than to their rate.
 
 **Verified:** wedding at 250,000, 2-hour window, Colombo to Kandy. Quoted 250,000 — the old multiplier would have given 125,000. Travel 84.22 km to 21,223.44, equipment 12,500, payout 283,723.44, commission 52,500 on the fee only, client total 347,697.46.
+
+**Amended 2026-11-02 by Praveen — commission is disclosed at quote time.**
+
+`preview_quote_pricing` must return the commission amount alongside the
+payout. The payout-only rule above is superseded to that extent and no
+further: the talent still sees no client total, no SSCL or VAT, and no
+gateway fee.
+
+**What this costs.** The "keeping commission unsalient" rationale above no
+longer holds, and was the reason for payout-only. Praveen's view is that the
+artist performs the arithmetic on their first booking anyway — they quote 100
+and receive 90 — so the figure is discovered regardless, and a deduction the
+artist meets first in their bank statement is worse than one named before they
+quote. The accepted consequence above is unaffected: the talent still does not
+know what the client was shown, because the client leg sits on a different
+base and is not disclosed to them (see D-003 as amended 2026-10-25).
+
+**Why it was forced now.** `docs/legal/talent-terms.md` Section 7(21) was
+rewritten on 2026-11-02 and commits to showing the talent both the commission
+and the resulting net payout before a Quote is submitted. That clause is
+merged. Until `preview_quote_pricing` returns the commission, the Terms
+promise something the product does not do — currently harmless only because
+the quote composition screen is unbuilt. **This is a live misstatement the day
+that screen ships.**
+
+**Also stale above:** the payout composition is described as "performance fee,
+travel, equipment". Equipment was dropped from the estate on 2026-11-01
+(migration `20261101060000`). Read it as performance fee, travel, meals,
+accommodation. The verification figures at the end of this entry predate that
+drop and are left as recorded — they are what was run on 2026-09-28, not a
+statement of current behaviour.
 
 ---
 
