@@ -950,7 +950,7 @@ Press reports the large private DJ fee as Rs 50k. **The gazette says Rs 60k. The
 **Date:** 2026-09-26
 **Status:** Settled — request half implemented, admin erasure unbuilt
 
-**Decision.** A profile row is never deleted. Erasure means blanking personal fields in place and keeping the row id. Around twenty tables cascade from `profiles_users` and `profiles_talent` — `payments`, `contracts`, `messages`, `reviews_star`, `documents`, `talent_payout_transactions`, `talent_identity`, `talent_media`, `availability`, `talent_stats` and more — so deleting a profile row destroys legal-hold data that must be retained.
+**Decision.** A profile row is never deleted. Erasure means blanking personal fields in place and keeping the row id. Around twenty tables cascade from `profiles_users` and `profiles_talent` — `payments`, `contracts`, `messages`, `reviews_star`, `documents`, `talent_payout_transactions`, `talent_identity`, `talent_media`, `talent_stats` and more — so deleting a profile row destroys legal-hold data that must be retained.
 
 **Any migration that flips one of those foreign keys to CASCADE removes a guardrail.**
 
