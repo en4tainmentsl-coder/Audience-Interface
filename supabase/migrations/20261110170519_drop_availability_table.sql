@@ -1,0 +1,26 @@
+-- Drop the dead `availability` table.
+--
+-- Context, 2026-11-10:
+--   `availability` and `talent_unavailability` both existed with zero rows.
+--   `availability` was the earlier, more ambitious model: it held positive
+--   availability windows (available_date_start/end, start_time, end_time) AND
+--   negative ones (is_blocked, blocked_reason) in one table.
+--   `talent_unavailability` superseded it with a narrower, negative-only model.
+--
+-- Verified before dropping:
+--   - 0 rows
+--   - no foreign keys point at it
+--   - no functions, triggers or views reference it
+--   - no application code in Audience-Interface or Talent_Interface queries it
+--   - its RLS was loose: availability_authenticated_read was USING (true),
+--     letting any authenticated user read every talent's availability
+--
+-- NOTE: positive availability as a concept is NOT abandoned. It remains an
+-- open question on the availability model task. It simply no longer has a
+-- dead table pre-empting the design.
+--
+-- Its three policies (availability_manage_own, availability_authenticated_read,
+-- service_role_full_access) and its FK to profiles_talent(id) drop with the
+-- table. No separate statements needed.
+
+drop table if exists public.availability;
