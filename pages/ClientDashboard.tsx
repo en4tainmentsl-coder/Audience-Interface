@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { 
-  Calendar, Clock, Heart, CreditCard, 
+  Calendar, Clock, Heart, 
   Settings, LogOut, ChevronRight,
-  Shield, Music, MapPin
+  Music, MapPin
 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { supabase } from '../services/supabase';
@@ -304,33 +304,6 @@ export const ClientDashboard: React.FC = () => {
                   ))}
                 </div>
               )}
-            </section>
-
-            <section className="bg-brand-surface rounded-2xl border border-white/10 p-6">
-              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-brand-purple" /> Payment Methods
-              </h3>
-              <div className="space-y-3">
-                <div className="bg-brand-dark/50 p-4 rounded-xl border border-white/5 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-6 bg-brand-purple/20 rounded flex items-center justify-center text-brand-purple font-bold text-[10px]">VISA</div>
-                    <span className="text-sm text-gray-300">•••• 4242</span>
-                  </div>
-                  <span className="text-[10px] text-gray-500 font-bold uppercase">Default</span>
-                </div>
-                <Button variant="outline" className="w-full text-sm">Add Payment Method</Button>
-              </div>
-            </section>
-
-            <section className="bg-gradient-to-br from-brand-purple/20 to-brand-pink/20 rounded-2xl border border-white/10 p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <Shield className="w-5 h-5 text-brand-purple" />
-                <h3 className="font-bold">Authorization Codes</h3>
-              </div>
-              <p className="text-xs text-gray-400 mb-4">Verification codes for upcoming event check-ins.</p>
-              <div className="bg-brand-dark/50 p-3 rounded-lg border border-white/5 text-center font-mono text-lg tracking-widest text-brand-lime">
-                EN4-8829-X
-              </div>
             </section>
           </div>
 
