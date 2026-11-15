@@ -8,6 +8,7 @@ import { User } from '@supabase/supabase-js';
 import type { RawTalentStats } from '../types';
 import { eventTypeLabel } from '../constants/eventTypes';
 import { SignInModal } from '../components/SignInModal';
+import { cldImage } from '../utils/cloudinary';
 
 interface ArtistDetailData {
   id: string;
@@ -197,8 +198,10 @@ export const ArtistDetail: React.FC = () => {
       
       <div className="relative h-[50vh] w-full">
         <img 
-          src={artist.imageUrl} 
+          src={cldImage(artist.imageUrl, 'hero')} 
           alt={artist.name} 
+          fetchPriority="high"
+          decoding="async"
           className="w-full h-full object-cover object-top opacity-60"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-brand-dark via-brand-dark/50 to-transparent" />
@@ -263,7 +266,7 @@ export const ArtistDetail: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {artist.gallery.map((img, idx) => (
                 <div key={idx} className="relative group rounded-lg overflow-hidden h-64 bg-gray-900" id={`gallery-item-${idx}`}>
-                  <img src={img} alt="Gallery" className="w-full h-full object-cover group-hover:opacity-75 transition-opacity" />
+                  <img src={cldImage(img, 'gallery')} alt="Gallery" loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:opacity-75 transition-opacity" />
                 </div>
               ))}
             </div>

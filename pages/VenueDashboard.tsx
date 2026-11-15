@@ -10,6 +10,7 @@ import { Button } from '../components/Button';
 import type { Database } from '../database.types';
 import { TalentRating } from '../components/TalentRating';
 import type { RawTalentStats } from '../types';
+import { cldImage } from '../utils/cloudinary';
 
 // bookings.starts_at / ends_at and quote_requests.starts_at are timestamptz.
 // Without an explicit timeZone these render in the *viewer's* zone, so an
@@ -786,7 +787,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                                 <div key={quote.id} className="bg-brand-dark p-6 rounded-xl border border-white/5 flex flex-col md:flex-row justify-between gap-6 hover:border-brand-purple/20 transition-all">
                                   <div className="flex gap-4">
                                     <img 
-                                      src={quote.profiles_talent?.profile_photo_url || 'https://picsum.photos/seed/talent/100/100'} 
+                                      src={cldImage(quote.profiles_talent?.profile_photo_url, 'avatar') || 'https://picsum.photos/seed/talent/100/100'} 
                                       alt={quote.profiles_talent?.stage_name}
                                       className="w-12 h-12 rounded-full object-cover border-2 border-white/10"
                                     />
@@ -888,7 +889,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                           <div className="flex gap-6">
                             <div className="relative flex-shrink-0">
                               <img 
-                                src={booking.profiles_talent?.profile_photo_url || 'https://picsum.photos/seed/talent/100/100'} 
+                                src={cldImage(booking.profiles_talent?.profile_photo_url, 'avatar') || 'https://picsum.photos/seed/talent/100/100'} 
                                 alt={booking.profiles_talent?.stage_name}
                                 className="w-14 h-14 rounded-full object-cover border-2 border-white/10"
                               />
@@ -1021,7 +1022,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                             <td className="p-4">
                               <div className="flex items-center gap-3">
                                 <img 
-                                  src={b.profiles_talent?.profile_photo_url || 'https://picsum.photos/seed/talent/50/50'} 
+                                  src={cldImage(b.profiles_talent?.profile_photo_url, 'avatar') || 'https://picsum.photos/seed/talent/50/50'} 
                                   className="w-8 h-8 rounded-full object-cover border border-white/10"
                                   alt=""
                                 />
@@ -1073,7 +1074,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
             <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
               <div className="flex items-center gap-4">
                 <img 
-                  src={activeMessageBooking.profiles_talent?.profile_photo_url || 'https://picsum.photos/seed/talent/100/100'} 
+                  src={cldImage(activeMessageBooking.profiles_talent?.profile_photo_url, 'avatar') || 'https://picsum.photos/seed/talent/100/100'} 
                   className="w-10 h-10 rounded-full object-cover border-2 border-white/10"
                   alt=""
                 />
@@ -1095,7 +1096,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                     <div className={`flex gap-3 max-w-[80%] ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
                       {!isMine && (
                         <img 
-                          src={activeMessageBooking.profiles_talent?.profile_photo_url || 'https://picsum.photos/seed/talent/50/50'} 
+                          src={cldImage(activeMessageBooking.profiles_talent?.profile_photo_url, 'avatar') || 'https://picsum.photos/seed/talent/50/50'} 
                           className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                           alt=""
                         />
