@@ -8,6 +8,7 @@ import { Button } from '../components/Button';
 import { supabase } from '../services/supabase';
 import { TalentRating } from '../components/TalentRating';
 import type { RawTalentStats } from '../types';
+import { cldImage } from '../utils/cloudinary';
 
 // bookings.starts_at / ends_at are timestamptz. Without an explicit timeZone
 // these render in the viewer's zone. Mirrors VenueDashboard.tsx.
@@ -158,7 +159,7 @@ export const TalentDashboard: React.FC = () => {
             <section className="bg-brand-surface rounded-2xl border border-white/10 p-6">
               <div className="flex items-center gap-4 mb-6">
                 <img 
-                  src={talent?.profile_photo_url || 'https://picsum.photos/seed/talent/200/200'} 
+                  src={cldImage(talent?.profile_photo_url, 'avatar') || 'https://picsum.photos/seed/talent/200/200'} 
                   alt={talent?.stage_name}
                   className="w-20 h-20 rounded-xl object-cover border border-white/10"
                 />

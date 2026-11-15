@@ -9,6 +9,7 @@ import { Button } from '../components/Button';
 import { supabase } from '../services/supabase';
 import { TalentRating } from '../components/TalentRating';
 import type { RawTalentStats } from '../types';
+import { cldImage } from '../utils/cloudinary';
 
 // bookings.starts_at and quote_requests.starts_at are timestamptz. Without an
 // explicit timeZone these render in the *viewer's* zone, so an 8pm–1am wedding
@@ -291,7 +292,7 @@ export const ClientDashboard: React.FC = () => {
                   {favorites.map((fav: ClientDashboardFavorite) => (
                     <div key={fav.id} className="flex items-center gap-4 group cursor-pointer" onClick={() => fav.profiles_talent?.id && navigate(`/artists/${fav.profiles_talent.id}`)}>
                       <img 
-                        src={fav.profiles_talent?.profile_photo_url || 'https://picsum.photos/seed/artist/100/100'} 
+                        src={cldImage(fav.profiles_talent?.profile_photo_url, 'avatar') || 'https://picsum.photos/seed/artist/100/100'} 
                         alt={fav.profiles_talent?.stage_name}
                         className="w-12 h-12 rounded-lg object-cover border border-white/10 animate-fade-in"
                       />
@@ -330,7 +331,7 @@ export const ClientDashboard: React.FC = () => {
                     >
                       <div className="flex items-center gap-4">
                         <img 
-                          src={booking.profiles_talent?.profile_photo_url || 'https://picsum.photos/seed/artist/100/100'} 
+                          src={cldImage(booking.profiles_talent?.profile_photo_url, 'avatar') || 'https://picsum.photos/seed/artist/100/100'} 
                           alt={booking.profiles_talent?.stage_name}
                           className="w-12 h-12 rounded-lg object-cover"
                         />
