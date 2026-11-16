@@ -292,7 +292,7 @@ export const ClientDashboard: React.FC = () => {
                   {favorites.map((fav: ClientDashboardFavorite) => (
                     <div key={fav.id} className="flex items-center gap-4 group cursor-pointer" onClick={() => fav.profiles_talent?.id && navigate(`/artists/${fav.profiles_talent.id}`)}>
                       <img 
-                        src={cldImage(fav.profiles_talent?.profile_photo_url, 'avatar') || 'https://picsum.photos/seed/artist/100/100'} 
+                        src={cldImage(fav.profiles_talent?.profile_photo_url, 'avatar') || '/avatar-placeholder.svg'} 
                         alt={fav.profiles_talent?.stage_name}
                         className="w-12 h-12 rounded-lg object-cover border border-white/10 animate-fade-in"
                       />
@@ -331,7 +331,7 @@ export const ClientDashboard: React.FC = () => {
                     >
                       <div className="flex items-center gap-4">
                         <img 
-                          src={cldImage(booking.profiles_talent?.profile_photo_url, 'avatar') || 'https://picsum.photos/seed/artist/100/100'} 
+                          src={cldImage(booking.profiles_talent?.profile_photo_url, 'avatar') || '/avatar-placeholder.svg'} 
                           alt={booking.profiles_talent?.stage_name}
                           className="w-12 h-12 rounded-lg object-cover"
                         />
