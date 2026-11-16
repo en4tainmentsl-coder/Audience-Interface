@@ -67,12 +67,23 @@ interface ClientDashboardQuote {
   event_type: string;
   starts_at: string;
   status: string;
+  decline_reason: string | null;
+  decline_note: string | null;
   profiles_talent?: {
     stage_name: string;
     profile_photo_url?: string;
   };
   quotes?: ClientDashboardQuoteOffer[];
 }
+
+// The artist picks an enum; the client reads a sentence. Never show the label.
+// Must cover every value of public.quote_decline_reason.
+const DECLINE_SENTENCES: Record<string, string> = {
+  schedule_conflict: 'The artist is not available at that time.',
+  outside_service_area: 'The event is outside the area the artist travels to.',
+  event_type_mismatch: 'The artist does not take this kind of event.',
+  other: 'The artist is unable to take this booking.',
+};
 
 interface ClientDashboardFavorite {
   id: string;
@@ -120,6 +131,8 @@ export const ClientDashboard: React.FC = () => {
           event_type,
           starts_at,
           status,
+          decline_reason,
+          decline_note,
           profiles_talent (stage_name, profile_photo_url),
           quotes (
             id,
@@ -403,6 +416,22 @@ export const ClientDashboard: React.FC = () => {
                           </span>
                         </div>
                       </div>
+
+                      {/* A declined request is closed for good: it names one artist
+                          and cannot be passed to another. Say why, and what to do. */}
+                      {quote.status === 'declined' && (
+                        <div className="border-t border-white/5 pt-4 space-y-1 text-sm text-gray-400">
+                          <p>
+                            {DECLINE_SENTENCES[quote.decline_reason ?? ''] ?? DECLINE_SENTENCES.other}
+                          </p>
+                          {quote.decline_note && (
+                            <p className="italic">&ldquo;{quote.decline_note}&rdquo;</p>
+                          )}
+                          <p className="text-xs text-gray-500">
+                            This request is now closed. You can send a new request to another artist.
+                          </p>
+                        </div>
+                      )}
 
                       {/* The offer itself. quotes_one_per_request means there is at
                           most one, but PostgREST returns an array for the embed. */}
