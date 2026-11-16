@@ -303,6 +303,8 @@ After the migration the same comparison finds no difference in behaviour. What r
 
 **One register entry is contradicted by this.** D-037 says there is "currently no age gate on clients at all". Live has two: `trg_check_client_age` on `profiles_users` (in the baseline) rejects a client under 18, and `chk_users_client_requires_dob` requires the date of birth to be present. Whether clients must be 18+ is still recorded as an open decision; the database has been enforcing yes.
 
+**Resolved 2026-11-16:** Praveen decided clients must be 18+. Recorded as D-056.
+
 **Two things generalise.**
 
 - **A text match over migrations is not a schema diff, in either direction.** It invented three missing policies and could not see a missing column. The only reliable comparison is between two databases. `supabase/drift/` holds the snapshot query so the comparison can be repeated.
