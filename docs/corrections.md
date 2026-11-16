@@ -35,6 +35,8 @@ REVOKE TRIGGER ON public.profiles_talent FROM nocobase_admin;
 
 Expected state after: `audit_log → SELECT`, `sensitive_asset_access_log → SELECT`, `profiles_talent → DELETE, INSERT, SELECT, UPDATE`. Re-apply these three statements after any rebuild and verify.
 
+**Superseded 2026-11-16 — these are now in the history.** Migration `20261116180000_reconcile_live_drift` carries all three statements. The reason for keeping them out no longer held: the baseline has created `nocobase_admin` since the 2026-08-28 re-baseline, so a migration naming the role replays cleanly. Verified 2026-11-16 by replaying the full history into an empty Postgres and comparing table ACLs with live — the three grants were the only ACL differences, and are gone after the migration. A rebuild no longer needs the manual re-apply. The paragraph above is kept as the record of why it was done by hand.
+
 ## `quotes_talent_matches_request` is sound only while the `talent_id` pin holds
 
 Postgres does not truly support subqueries in `CHECK` constraints. The helper-function wrapper is a known workaround and is **not re-validated when the other table changes**.
@@ -275,3 +277,34 @@ It applied cleanly and passed every check that did not read the view **as anon**
 **The fix mattered as much as the bug.** Granting `anon` EXECUTE would have cleared the error and handed out a **boundary-probing oracle** — call it repeatedly and binary-search the range edges, which is precisely what keeping `price_ranges` unreadable prevents and what D-039's three-checks limit assumes is impossible. The lookup was inlined as a correlated subquery instead: no function call, no EXECUTE needed, boundaries still unreachable.
 
 **What generalises.** Test a permission-sensitive object **as the role that will use it**, not as the role that built it. "The view exists and returns rows" is not the same claim as "an anonymous visitor can read it."
+
+## The migration history did not rebuild the live schema
+
+**Found 2026-11-01, measured properly and fixed 2026-11-16** by `20261116180000_reconcile_live_drift`.
+
+The first account of this, written on 2026-11-01, came from grepping `CREATE POLICY` and `DROP POLICY` across the migrations and comparing names with `pg_policies`. It reported five policies live that the history never creates, including the INSERT policy on `quote_requests` and the self-insert on `profiles_users`, and concluded that a rebuilt database could take neither a signup nor a quote request.
+
+**Three of those five were wrong.** `quote_requests_owner_insert`, `quote_requests_owner_update` and `users_insert_own` are all created by the history (`20260901160000`, `20260911165534`, `20260918235724`). The grep missed them because they are written unquoted and across several lines.
+
+**And it missed the difference that mattered.** Verified 2026-11-16 by replaying all 106 migrations into an empty Postgres and comparing a catalog snapshot of the `public` schema with the same snapshot from live — 1,438 objects:
+
+| Live has it, the history did not | Consequence on a rebuild |
+|---|---|
+| `quote_requests.audience_capacity` and the enum `audience_capacity_band` | **No quote request can be created.** `RequestQuote.tsx` writes the column on every request and `enforce_quote_request_writes` reads it. |
+| `fav_auth_insert`, `rh_auth_delete` in place of `fav_client_insert`, `rh_client_delete` | Only role `client` could favourite; a venue could not. |
+| `talent_favourites.user_id` NOT NULL, FK to `auth.users` | Column nullable, FK to `profiles_users` under its pre-rename name. |
+| `chk_users_client_requires_dob` on `profiles_users` | A client row with no date of birth is accepted, and `trg_check_client_age` passes a NULL straight through. |
+| `is_18_or_over` marked STABLE | Marked IMMUTABLE while reading `CURRENT_DATE`. |
+| `nocobase_admin` limited to SELECT on `audit_log` and `sensitive_asset_access_log` | Directus could rewrite both logs. Already recorded above. |
+
+After the migration the same comparison finds no difference in behaviour. What remains is text: 22 function bodies differ only in line endings, comments or whitespace (12 on live have CRLF, 9 have had their comments stripped, 1 differs in spacing), and three coordinate CHECK constraints print their parentheses differently between Postgres 16 (the scratch database) and 17 (live).
+
+**The ledger is clean.** Read live 2026-11-16: 106 rows, 106 files, every version equal to its filename. The five mismatched versions recorded on 2026-09-17 and the two files without a ledger row are both resolved.
+
+**One register entry is contradicted by this.** D-037 says there is "currently no age gate on clients at all". Live has two: `trg_check_client_age` on `profiles_users` (in the baseline) rejects a client under 18, and `chk_users_client_requires_dob` requires the date of birth to be present. Whether clients must be 18+ is still recorded as an open decision; the database has been enforcing yes.
+
+**Two things generalise.**
+
+- **A text match over migrations is not a schema diff, in either direction.** It invented three missing policies and could not see a missing column. The only reliable comparison is between two databases. `supabase/drift/` holds the snapshot query so the comparison can be repeated.
+- **Every "verified live" in this file describes production only.** Until 2026-11-16 nothing checked that the history reproduces it. The backup and the weekly restore test prove the data comes back; they say nothing about whether a rebuild from migrations would be the same database.
+

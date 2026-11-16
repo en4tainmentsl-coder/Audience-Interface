@@ -444,6 +444,16 @@ When a migration is applied through the Supabase MCP, **the MCP generates its ow
 
 This was not followed before 2026-09-26 and the drift reached **22 of 55 files** — 20 renamed pairs plus 2 with no ledger row at all. Reconciled 2026-09-27 (PR #130). See the Standing Correction.
 
+### Amendment, 2026-11-16 — the history must rebuild the live schema, and that is now checked by comparison
+
+The amendment above covers a migration that exists under two names. It does not cover a change made against production with **no migration at all**, and that had happened at least six times: a column and an enum on `quote_requests`, two policies and a foreign key on `talent_favourites`, a CHECK on `profiles_users`, a function's volatility, and three grants to `nocobase_admin`. A database rebuilt from this history could not take a quote request. Reconciled by `20261116180000_reconcile_live_drift`; the full account is in the Standing Corrections.
+
+**Decided by Praveen, 2026-10-15** (recorded on the ledger-reconciliation task at the time and never written here): schema changes reach production through `supabase db push` from a migration file in this repo, and by no other route. `apply_migration` and `execute_sql` are not used for anything that belongs in the history. Every change in the list above predates that decision or slipped past it.
+
+**Verified 2026-11-16, an observation of the live system:** after the reconciliation migration, replaying all 107 migrations into an empty database produces a `public` schema with no difference in behaviour from production, across 1,504 compared catalog rows. The query and the comparison script are in `supabase/drift/`.
+
+**Open, not decided:** whether that comparison runs in CI. It needs a read-only production database credential stored as a repository secret. Until it does, the guarantee holds as of the last time someone ran it by hand, and the rule above is kept by discipline alone.
+
 ---
 
 ## D-016 — Directus, not NocoBase, is the admin layer
