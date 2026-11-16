@@ -159,7 +159,7 @@ export const TalentDashboard: React.FC = () => {
             <section className="bg-brand-surface rounded-2xl border border-white/10 p-6">
               <div className="flex items-center gap-4 mb-6">
                 <img 
-                  src={cldImage(talent?.profile_photo_url, 'avatar') || 'https://picsum.photos/seed/talent/200/200'} 
+                  src={cldImage(talent?.profile_photo_url, 'avatar') || '/avatar-placeholder.svg'} 
                   alt={talent?.stage_name}
                   className="w-20 h-20 rounded-xl object-cover border border-white/10"
                 />
