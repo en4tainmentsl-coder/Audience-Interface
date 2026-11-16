@@ -26,7 +26,7 @@
 --     DOES get an INSERT policy for quote requests and a self-insert for
 --     profiles_users.
 --   * fav_anon_insert is no longer drift. 20261101103311 drops it.
---   * Six differences the grep could not see are real, and one of them breaks
+--   * Five differences the grep could not see are real, and one of them breaks
 --     the booking flow on a rebuild. They are sections 2 to 6 below.
 --
 -- For every item the decision is the same and was the task's own expectation:
