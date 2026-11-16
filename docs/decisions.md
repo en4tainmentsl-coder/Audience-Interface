@@ -72,6 +72,8 @@ Verified-wrong assumptions live in [`corrections.md`](./corrections.md).
 | D-053 | Favourite notes are written once, not edited | Settled, implemented |
 | D-054 | Two approvals or nothing; no single-approver override | Settled — **unbuilt** |
 | D-055 | Each side's documents disclose only that side's commission leg | Settled — **not yet written into the documents** |
+| D-056 | Clients must be 18 or over | Settled, implemented |
+| D-057 | A favourite belongs to the signed-in account, not to a profile | Settled, implemented |
 
 ---
 
@@ -453,6 +455,8 @@ The amendment above covers a migration that exists under two names. It does not 
 **Verified 2026-11-16, an observation of the live system:** after the reconciliation migration, replaying all 107 migrations into an empty database produces a `public` schema with no difference in behaviour from production, across 1,504 compared catalog rows. The query and the comparison script are in `supabase/drift/`.
 
 **Open, not decided:** whether that comparison runs in CI. It needs a read-only production database credential stored as a repository secret. Until it does, the guarantee holds as of the last time someone ran it by hand, and the rule above is kept by discipline alone.
+
+**Decided by Praveen, 2026-11-16 — it runs in CI.** This closes the open point directly above, which is kept as written. `.github/workflows/schema-drift.yml` rebuilds a database from the history every day, snapshots production as the read-only role `drift_reader` (`20261116190000_drift_reader_role`: no privilege on any table, read-only transactions, no password in the repo) and fails on any difference in behaviour. It is scheduled and deliberately **not** a pull-request check, because a PR that adds a migration is ahead of production until `supabase db push` runs. A red run therefore means either an undocumented change on production or a merged migration that was never pushed. Cron jobs are outside the scheduled comparison; `cron.job` is hidden from that role.
 
 ---
 
@@ -1020,6 +1024,8 @@ Press reports the large private DJ fee as Rs 50k. **The gazette says Rs 60k. The
 **⚠️ The venue portal is a live dead end.** `VenuePortal.tsx` already sets `pending_approval` and tells the venue *"still under review, we will contact you once approved."* Nothing can approve them. Zero venue rows, so nobody is stuck — but the portal is live.
 
 **⚠️ The client 18+ check is dead code.** `check_client_dob_before_submission` fires only on a transition to `pending_approval` or `approved`, which now never happens. There is currently no age gate on clients at all. **Open:** whether clients must be 18+, and if so the check belongs on quote-request creation.
+
+**Superseded 2026-11-16 by D-056.** The paragraph above was wrong about the database when it was written and the open question is now answered: clients must be 18+, and two checks on `profiles_users` already enforce it.
 
 ---
 
@@ -1645,6 +1651,62 @@ on Ragu's agent-vs-principal answer.
 for gateway fee absorption, and D-051 for payout-only previews.
 
 ---
+
+## D-056 — Clients must be 18 or over
+
+**Date:** 2026-11-16
+**Status:** Settled, implemented
+**Decided by:** Praveen
+**Source:** Todoist `6hvJJhMfPrGxFmfX`
+
+**Decision.** A client must be 18 or over to hold an account. This answers
+the question D-037 left open and that sat in Open Decisions with no task.
+
+**It was already enforced, and the register said otherwise.** D-037 recorded
+"no age gate on clients at all" because `check_client_dob_before_submission`
+is dead code. That function is dead, but it was never the only check.
+Verified live 2026-11-16, on `profiles_users`:
+
+- `trg_check_client_age` rejects a row with role `client` and a date of birth
+  under 18. In the baseline.
+- `chk_users_client_requires_dob` requires a client row to carry a date of
+  birth at all. Without it the trigger passes a NULL straight through. This
+  constraint was added directly on production and reached the history only
+  in `20261116180000_reconcile_live_drift`.
+
+`ClientOnboarding.tsx` collects the date of birth and refuses under-18s
+before the write. The gate is at account level, so D-037's suggestion that
+the check "belongs on quote-request creation" is not needed: an account that
+can raise a quote request has already passed it.
+
+**Left as it is.** `check_client_dob_before_submission` remains dead code for
+the reason D-037 gives. Removing it is tidying, not part of this decision.
+
+---
+
+## D-057 — A favourite belongs to the signed-in account, not to a profile
+
+**Date:** 2026-11-16
+**Status:** Settled, implemented
+**Decided by:** Praveen
+**Source:** Todoist `6hvJJhMfPrGxFmfX`
+
+**Decision.** `talent_favourites.user_id` references `auth.users(id)`, is
+NOT NULL, and any signed-in user may favourite and un-favourite on their own
+row (`fav_auth_insert`, `rh_auth_delete`). It does not reference
+`profiles_users`, and it is not limited to role `client`.
+
+**Why this needed writing down.** All three were changed directly on
+production around the removal of anonymous hearts on 2026-10-04 and existed
+in no migration and no register entry. The baseline still had the foreign key
+on `profiles_users`, the column nullable, and both policies restricted to
+clients. Found by schema comparison on 2026-11-16 and brought into the
+history by `20261116180000_reconcile_live_drift`. Praveen confirmed the same
+day that the live shape is the intended one, not an accident to be reversed.
+
+**See also** D-053 for why there is no UPDATE policy on this table.
+
+---
 # Open Decisions
 
 These are not settled. Each links to its Todoist task. When one is resolved it moves up into the numbered register above and is deleted from this list.
@@ -1658,7 +1720,6 @@ These are not settled. Each links to its Todoist task. When one is resolved it m
 | `6hPr9wRvcpwJ2W6X` | Two talent dashboards exist in two repos — which one is real? |
 | `6h979FQpFWqHH8p5` | Is `completion_due_at` derived from event end time, or from a talent "mark as performed" action? These diverge when an event overruns. *Must be answered before the auto-completion window can be built.* |
 | `6hJ8Mp3PGW3xR5mX` | What triggers release of a talent payout? The 24h auto-completion window it was assumed to hang off **does not exist** — see below. |
-| — | **Must clients be 18+?** `check_client_dob_before_submission` is dead code (D-037), so there is currently **no age gate on clients at all**. If the answer is yes, the check belongs on quote-request creation. *No task exists.* |
 
 ## Not blocking, but open
 

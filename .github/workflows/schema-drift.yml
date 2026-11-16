@@ -1,0 +1,71 @@
+name: Schema Drift
+
+# Does the migration history rebuild the production schema?
+#
+# Rebuilds a database from supabase/migrations/, takes the same catalog
+# snapshot from production, and fails on any difference in behaviour.
+# See supabase/drift/README.md.
+#
+# Scheduled, NOT a pull-request check, and it must not be made a required one.
+# A PR that adds a migration is by definition ahead of production until
+# `supabase db push` runs after merge, so this comparison would fail on every
+# such PR for a reason that is not a fault. Run daily it also catches the
+# other direction: a migration merged and never pushed.
+on:
+  schedule:
+    - cron: "17 2 * * *" # 07:47 Asia/Colombo
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: schema-drift
+  cancel-in-progress: true
+
+jobs:
+  schema-drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Require the production credential
+        env:
+          DRIFT_DB_URL: ${{ secrets.DRIFT_DB_URL }}
+        run: |
+          if [ -z "$DRIFT_DB_URL" ]; then
+            echo "::error::Repository secret DRIFT_DB_URL is not set. See supabase/drift/README.md."
+            exit 1
+          fi
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
+        with:
+          version: 2.122.0
+
+      - name: Rebuild a database from the migration history
+        run: supabase db start
+
+      - name: Prepare the snapshot query
+        # drift_reader cannot see cron.job (see the role's migration), so the
+        # cron rows are left out of BOTH sides rather than compared unevenly.
+        run: grep -v "union all select 'cron'" supabase/drift/snapshot.sql > "$RUNNER_TEMP/snapshot.sql"
+
+      - name: Snapshot the rebuilt database
+        run: |
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            --csv -t -v ON_ERROR_STOP=1 -f "$RUNNER_TEMP/snapshot.sql" > "$RUNNER_TEMP/rebuilt.csv"
+          wc -l "$RUNNER_TEMP/rebuilt.csv"
+
+      - name: Snapshot production
+        env:
+          DRIFT_DB_URL: ${{ secrets.DRIFT_DB_URL }}
+        run: |
+          psql "$DRIFT_DB_URL" \
+            --csv -t -v ON_ERROR_STOP=1 -f "$RUNNER_TEMP/snapshot.sql" > "$RUNNER_TEMP/live.csv"
+          wc -l "$RUNNER_TEMP/live.csv"
+
+      - name: Compare
+        run: python3 supabase/drift/compare.py "$RUNNER_TEMP/rebuilt.csv" "$RUNNER_TEMP/live.csv"
