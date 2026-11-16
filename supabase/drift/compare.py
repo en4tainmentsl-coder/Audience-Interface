@@ -10,9 +10,13 @@ Counted but not failed, because they are text and not behaviour:
   * the MAINTAIN table privilege ('m'), which exists from Postgres 17 only
 
 Listed for a human to read, and not failed: expressions that differ only in
-their parentheses. Postgres 16 and 17 print nested ANDs differently, so this
-is expected when the two databases are different major versions -- but
-parentheses can carry meaning, so these are shown rather than dismissed.
+their parentheses. Three are expected on every run -- the coordinate CHECKs
+on profiles_talent, profiles_venues and quote_requests, which a rebuild
+stores as `A AND B AND (C AND D)` where production has
+`(A AND B) AND (C AND D)`. This is not a Postgres version difference: it
+shows with both sides on 17. See docs/corrections.md. Parentheses can carry
+meaning, so anything in this list is shown rather than dismissed, and a
+fourth entry is worth reading properly.
 """
 import csv
 import re

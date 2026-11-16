@@ -69,6 +69,18 @@ postgresql://drift_reader.sqovyodycuyajmumcjnn:<password>@aws-1-ap-south-1.poole
 The role has no privilege on any table and cannot read application data. It
 reads the system catalogs, which every role can.
 
+## Reading a green run
+
+A passing run still prints two things, and both are expected:
+
+- **22 functions "differ in text only".** Line endings, stripped comments and
+  whitespace. The code is the same.
+- **3 constraints "differ only in parentheses".** The coordinate CHECKs on
+  `profiles_talent`, `profiles_venues` and `quote_requests`. Same meaning,
+  stored one level flatter on a rebuild. Not a Postgres version difference.
+
+If either number changes, read the list.
+
 ## What it does not cover
 
 Only the `public` schema. Not `auth`, `storage`, `vault` or `cron` internals,

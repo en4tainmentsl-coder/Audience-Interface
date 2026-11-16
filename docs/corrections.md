@@ -299,6 +299,10 @@ The first account of this, written on 2026-11-01, came from grepping `CREATE POL
 
 After the migration the same comparison finds no difference in behaviour. What remains is text: 22 function bodies differ only in line endings, comments or whitespace (12 on live have CRLF, 9 have had their comments stripped, 1 differs in spacing), and three coordinate CHECK constraints print their parentheses differently between Postgres 16 (the scratch database) and 17 (live).
 
+**Corrected 2026-11-16, the same day: the cause given in that last clause is wrong.** The first scheduled run compared a rebuild and production with **both on Postgres 17**, and the three constraints still print differently, so it is not a version difference. Verified from that run's log (Actions run `43924763754`). Production holds each constraint as `(A AND B) AND (C AND D)`; a rebuild holds `A AND B AND (C AND D)`. The meaning is identical. *Claude's reading, unverified:* the baseline is a dump of production, and when Postgres parses that dumped text again it folds the left-hand nested AND into its parent, so the rebuilt constraint is stored one level flatter than the original it was dumped from. The difference is therefore permanent, not something a Postgres upgrade removes, and the drift check lists these three on every run without failing.
+
+**What generalises.** The version explanation was a guess that fitted the only evidence available, written down as a finding. It was checked only because the next run happened to remove the variable.
+
 **The ledger is clean.** Read live 2026-11-16: 106 rows, 106 files, every version equal to its filename. The five mismatched versions recorded on 2026-09-17 and the two files without a ledger row are both resolved.
 
 **One register entry is contradicted by this.** D-037 says there is "currently no age gate on clients at all". Live has two: `trg_check_client_age` on `profiles_users` (in the baseline) rejects a client under 18, and `chk_users_client_requires_dob` requires the date of birth to be present. Whether clients must be 18+ is still recorded as an open decision; the database has been enforcing yes.
