@@ -74,6 +74,7 @@ Verified-wrong assumptions live in [`corrections.md`](./corrections.md).
 | D-055 | Each side's documents disclose only that side's commission leg | Settled — **not yet written into the documents** |
 | D-056 | Clients must be 18 or over | Settled, implemented |
 | D-057 | A favourite belongs to the signed-in account, not to a profile | Settled, implemented |
+| D-058 | How a talent answers a quote request: send a fixed-fee quote, or decline | Settled, implemented |
 
 ---
 
@@ -1705,6 +1706,66 @@ history by `20261116180000_reconcile_live_drift`. Praveen confirmed the same
 day that the live shape is the intended one, not an accident to be reversed.
 
 **See also** D-053 for why there is no UPDATE policy on this table.
+
+---
+
+## D-058 — How a talent answers a quote request: send a fixed-fee quote, or decline
+
+**Date:** 2026-11-16
+**Status:** Settled, implemented
+**Decided by:** Praveen
+**Source:** Todoist `6hqc4MRH9hXcm3w5`, `6hqm9Ffwvf6XJR45`
+
+**Decision.** A talent answers a quote request in one of two ways, both
+through an Edge Function calling a `service_role`-only database function:
+`submit_quote` and `decline_quote_request`
+(`20261116193000_talent_submit_and_decline_quote`). Neither is reachable from
+the browser, and neither accepts a talent id: the talent is resolved from the
+verified user.
+
+**Before this, neither was possible.** `quotes` has no INSERT policy and
+nothing inserted into it, so no quote had ever existed and nothing downstream
+of one had ever run. A talent had SELECT only on `quote_requests`, so the
+decline decided on 2026-09-27 was unreachable.
+
+**Settled on 2026-11-16:**
+
+- **The talent may decline as well as quote**, in the same build.
+- **Setup arrival time may be any time after now and before the event
+  starts.** Chosen over a 12-hour and a 24-hour window before the start. It is
+  required, as is the performer count (2026-09-27).
+- **No email to the client when a quote is sent.** A quote is to stay hidden
+  from the client until their KYC is verified (2026-11-04), and that gate is
+  not built. The notification belongs with it.
+- **The answer screen is its own page in En410**, not a rebuild of Bookings.
+
+**Carried from earlier decisions, restated because this is where they are
+enforced:**
+
+- The fee is not an input (2026-10-25, D-051). `submit_quote` takes no amount.
+- The talent sees their payout and never the client total (2026-10-25).
+  `preview_quote_pricing` returns payout-side figures only. Note that `quotes`
+  is readable row-wide by the talent, so on a sent quote this is a discipline
+  of the select string in En410, not something the database enforces.
+- Meals and accommodation fees are talent-entered and distance-gated
+  (2026-10-26). The gates stay in `compute_quote_pricing`.
+  `preview_quote_pricing` now also returns the two thresholds, so the screen
+  can offer the fields without a hardcoded copy of them.
+
+**Claude's reading, not put to Praveen as questions — check these:**
+
+- **A decline closes the request.** `talent_id` is pinned on a request, so
+  there is nobody else it could pass to; the client raises a new one. The
+  decline task flagged this as needing a decision rather than an accident.
+- **A decline takes an optional note, required for `other`,** capped at 200
+  characters, in a new column `quote_requests.decline_note`. This follows the
+  2026-09-27 wording ("enum plus optional note") and mirrors the client-side
+  rule on `quotes.rejected_note`.
+- **No email to the client on a decline either**, following the quote. The
+  client sees the reason and note on their dashboard instead.
+- **A note to the client on a quote is capped at 1,000 characters.**
+- **A talent cannot decline after quoting.** There is still no way to
+  withdraw a sent quote.
 
 ---
 # Open Decisions
