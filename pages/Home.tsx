@@ -83,10 +83,62 @@ export const Home: React.FC = () => {
       
       <section className="relative h-screen flex items-center overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <img 
-            src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&q=80&w=1920" 
-            alt="Concert Stage Atmosphere" 
-            className="w-full h-full object-cover opacity-50 contrast-125 scale-105 animate-slow-zoom"
+          {/* Stage atmosphere, rendered in CSS. Replaced a 406 kB hotlinked
+              Unsplash file that sat at opacity-50 under the gradients below,
+              so almost none of the photograph was ever visible. */}
+          <div
+            className="absolute inset-0 animate-slow-zoom"
+            style={{
+              backgroundColor: '#0f0518',
+              backgroundImage:
+                'radial-gradient(ellipse 85% 70% at 22% 2%, rgba(139,92,246,.55), transparent 65%),' +
+                'radial-gradient(ellipse 70% 55% at 92% 12%, rgba(236,72,153,.42), transparent 62%),' +
+                'radial-gradient(ellipse 100% 60% at 50% 108%, rgba(67,56,202,.50), transparent 68%),' +
+                'radial-gradient(ellipse 45% 40% at 75% 70%, rgba(163,230,53,.14), transparent 72%)',
+            }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                'linear-gradient(192deg, rgba(139,92,246,.30) 0%, rgba(139,92,246,.10) 22%, transparent 48%),' +
+                'linear-gradient(168deg, rgba(236,72,153,.26) 0%, rgba(236,72,153,.08) 26%, transparent 52%),' +
+                'linear-gradient(205deg, rgba(163,230,53,.14) 0%, transparent 38%)',
+              backgroundSize: '42% 100%, 38% 100%, 30% 100%',
+              backgroundPosition: '14% 0, 68% 0, 42% 0',
+              backgroundRepeat: 'no-repeat',
+              filter: 'blur(14px)',
+            }}
+          />
+          <div
+            className="absolute inset-0 animate-slow-zoom"
+            style={{
+              backgroundImage:
+                'radial-gradient(circle, rgba(255,255,255,.95) 1.5px, transparent 2.4px),' +
+                'radial-gradient(circle, rgba(163,230,53,.85) 1.4px, transparent 2.2px),' +
+                'radial-gradient(circle, rgba(236,72,153,.85) 2.0px, transparent 3.0px),' +
+                'radial-gradient(circle, rgba(255,255,255,.60) 1.1px, transparent 1.9px),' +
+                'radial-gradient(circle, rgba(167,139,250,.90) 1.8px, transparent 2.7px)',
+              backgroundSize: '211px 173px, 317px 263px, 439px 367px, 157px 199px, 373px 311px',
+              backgroundPosition: '0 0, 47px 83px, 131px 29px, 73px 127px, 211px 157px',
+              opacity: 0.9,
+              WebkitMaskImage:
+                'linear-gradient(to bottom, #000 0%, rgba(0,0,0,.85) 30%, rgba(0,0,0,.25) 62%, transparent 85%)',
+              maskImage:
+                'linear-gradient(to bottom, #000 0%, rgba(0,0,0,.85) 30%, rgba(0,0,0,.25) 62%, transparent 85%)',
+            }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                'radial-gradient(circle 80px at 12% 70%, rgba(236,72,153,.26), transparent 70%),' +
+                'radial-gradient(circle 130px at 80% 16%, rgba(139,92,246,.30), transparent 70%),' +
+                'radial-gradient(circle 60px at 60% 86%, rgba(163,230,53,.16), transparent 70%),' +
+                'radial-gradient(circle 100px at 36% 22%, rgba(255,255,255,.10), transparent 70%),' +
+                'radial-gradient(circle 70px at 93% 58%, rgba(236,72,153,.18), transparent 70%)',
+              filter: 'blur(3px)',
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-brand-dark via-brand-dark/70 to-brand-purple/20" />
           <div className="absolute inset-0 bg-gradient-to-r from-brand-dark via-transparent to-brand-dark" />
