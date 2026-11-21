@@ -62,6 +62,27 @@ interface ClientDashboardQuoteOffer {
   performer_count: number | null;
 }
 
+// Everything the client pays for the engagement itself: the talent's fee, En4's
+// client-side commission, and travel, meals and accommodation where they apply.
+//
+// Derived by SUBTRACTING the separately itemised lines from the total rather
+// than summed from the parts. Two reasons. The breakdown can then never
+// disagree with the total - it previously showed lines summing to 10% less than
+// the total, because the client commission leg had no line and was never meant
+// to have one. And commission_client_amount still never has to be fetched, so
+// En4's margin stays out of the browser entirely.
+//
+// SSCL, VAT and the gateway fee keep their own lines deliberately: a tax
+// invoice must state the tax charged separately from the value of the supply,
+// so bundling them would not survive VAT registration.
+const engagementAmount = (q: ClientDashboardQuoteOffer): string =>
+  String(
+    Number(q.total_client_price ?? 0) -
+      Number(q.sscl_amount ?? 0) -
+      Number(q.vat_amount ?? 0) -
+      Number(q.gateway_fee_amount ?? 0),
+  );
+
 interface ClientDashboardQuote {
   id: string;
   event_type: string;
@@ -455,23 +476,8 @@ export const ClientDashboard: React.FC = () => {
                         <div className="border-t border-white/5 pt-4 space-y-3">
                           <div className="space-y-1 text-sm">
                             <div className="flex justify-between text-gray-400">
-                              <span>Performance fee</span><span>{money(quote.quotes.quoted_amount)}</span>
+                              <span>Performance fee*</span><span>{money(engagementAmount(quote.quotes))}</span>
                             </div>
-                            {Number(quote.quotes.travel_fee ?? 0) > 0 && (
-                              <div className="flex justify-between text-gray-400">
-                                <span>Travel</span><span>{money(quote.quotes.travel_fee)}</span>
-                              </div>
-                            )}
-                            {Number(quote.quotes.meals_fee ?? 0) > 0 && (
-                              <div className="flex justify-between text-gray-400">
-                                <span>Meals</span><span>{money(quote.quotes.meals_fee)}</span>
-                              </div>
-                            )}
-                            {Number(quote.quotes.accommodation_fee ?? 0) > 0 && (
-                              <div className="flex justify-between text-gray-400">
-                                <span>Accommodation</span><span>{money(quote.quotes.accommodation_fee)}</span>
-                              </div>
-                            )}
                             {Number(quote.quotes.sscl_amount ?? 0) > 0 && (
                               <div className="flex justify-between text-gray-400">
                                 <span>SSCL</span><span>{money(quote.quotes.sscl_amount)}</span>
@@ -490,6 +496,12 @@ export const ClientDashboard: React.FC = () => {
                             <div className="flex justify-between font-bold text-white pt-2 border-t border-white/5">
                               <span>Total</span><span>{money(quote.quotes.total_client_price)}</span>
                             </div>
+                            <p className="pt-2 text-xs text-gray-500">
+                              * Covers the performers, their instruments and equipment,
+                              travel, meals and accommodation.
+                              {Number(quote.quotes.travel_fee ?? 0) > 0 &&
+                                ` Includes ${money(quote.quotes.travel_fee)} for travel.`}
+                            </p>
                           </div>
 
                           {quote.quotes.notes_to_client && (
