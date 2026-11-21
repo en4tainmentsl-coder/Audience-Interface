@@ -10,6 +10,7 @@ import { Button } from '../components/Button';
 import type { Database } from '../database.types';
 import { TalentRating } from '../components/TalentRating';
 import type { RawTalentStats } from '../types';
+import { cldImage } from '../utils/cloudinary';
 
 // bookings.starts_at / ends_at and quote_requests.starts_at are timestamptz.
 // Without an explicit timeZone these render in the *viewer's* zone, so an
@@ -70,7 +71,6 @@ interface BookingQuote {
   quote_status: string;
   notes_to_client?: string;
   travel_fee?: number;
-  equipment_fee?: number;
   profiles_talent?: {
     stage_name: string;
     profile_photo_url?: string;
@@ -213,6 +213,7 @@ export const VenueDashboard: React.FC = () => {
   const [expandedBooking, setExpandedBooking] = useState<string | null>(null);
   const [expandedQuoteRequest, setExpandedQuoteRequest] = useState<string | null>(null);
   const [historyPage, setHistoryPage] = useState<number>(1);
+  const [accepting, setAccepting] = useState<string | null>(null);
 
   const messageEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -263,7 +264,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
       ] = await Promise.all([
         // 2. Quote Requests
         supabase.from('quote_requests')
-          .select('*, quotes(id, talent_id, quoted_amount, total_client_price, quote_status, expires_at, notes_to_client, profiles_talent(stage_name, profile_photo_url, talent_stats(rating_average, rating_count), type_of_performer))')
+          .select('*, quotes(id, talent_id, quoted_amount, travel_fee, total_client_price, quote_status, expires_at, notes_to_client, profiles_talent(stage_name, profile_photo_url, talent_stats(rating_average, rating_count), type_of_performer))')
           .eq('venue_id', venueProfile.id)
           .order('created_at', { ascending: false }),
 
@@ -360,18 +361,50 @@ if (data) venueProfile = data as unknown as VenueProfile;
     navigate('/venue-portal');
   };
 
-  const handleAcceptQuote = async (quoteId: string, requestId: string): Promise<void> => {
+    // Was two client-side PostgREST updates that created NO booking, and almost
+  // certainly changed nothing: there is no client UPDATE policy on quotes, and
+  // PostgREST returns success on zero RLS matches — the same silent failure
+  // that made handleCancelBooking below report "Booking cancelled." falsely.
+  //
+  // accept-quote calls accept_quote_and_create_booking, which does all three
+  // writes (quote -> accepted, booking INSERT, request -> converted) in one
+  // transaction. Raw fetch, not functions.invoke(): invoke does not reliably
+  // surface 4xx JSON bodies, and the RPC's messages are written for the user.
+  const handleAcceptQuote = async (quoteId: string): Promise<void> => {
+    setAccepting(quoteId);
     try {
-      const { error: quoteError } = await supabase.from('quotes').update({ quote_status: 'accepted' }).eq('id', quoteId);
-      if (quoteError) throw quoteError;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        showToast('Please sign in again.');
+        return;
+      }
 
-      const { error: requestError } = await supabase.from('quote_requests').update({ status: 'converted' }).eq('id', requestId);
-      if (requestError) throw requestError;
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/accept-quote`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ quote_id: quoteId }),
+        },
+      );
 
-      showToast("Quote accepted successfully!");
+      const body = await res.json();
+
+      if (!res.ok) {
+        showToast(body?.error ?? 'Could not accept the quote.');
+        return;
+      }
+
+      showToast('Quote accepted — your booking is confirmed.');
       loadDashboardData();
     } catch {
-      showToast("Failed to accept quote.");
+      showToast('Could not accept the quote. Please try again.');
+    } finally {
+      setAccepting(null);
     }
   };
 
@@ -754,7 +787,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                                 <div key={quote.id} className="bg-brand-dark p-6 rounded-xl border border-white/5 flex flex-col md:flex-row justify-between gap-6 hover:border-brand-purple/20 transition-all">
                                   <div className="flex gap-4">
                                     <img 
-                                      src={quote.profiles_talent?.profile_photo_url || 'https://picsum.photos/seed/talent/100/100'} 
+                                      src={cldImage(quote.profiles_talent?.profile_photo_url, 'avatar') || '/avatar-placeholder.svg'} 
                                       alt={quote.profiles_talent?.stage_name}
                                       className="w-12 h-12 rounded-full object-cover border-2 border-white/10"
                                     />
@@ -777,10 +810,6 @@ if (data) venueProfile = data as unknown as VenueProfile;
                                         <p className="text-[8px] uppercase font-black text-gray-500">Travel</p>
                                         <p className="text-xs font-bold text-white">{quote.travel_fee || 0}</p>
                                       </div>
-                                      <div>
-                                        <p className="text-[8px] uppercase font-black text-gray-500">Equip</p>
-                                        <p className="text-xs font-bold text-white">{quote.equipment_fee || 0}</p>
-                                      </div>
                                     </div>
                                     <p className="text-sm italic text-gray-400 border-l-2 border-brand-purple/30 pl-3">"{quote.notes_to_client}"</p>
                                   </div>
@@ -796,10 +825,11 @@ if (data) venueProfile = data as unknown as VenueProfile;
                                         <>
                                           <Button 
                                             size="sm" 
-                                            onClick={() => handleAcceptQuote(quote.id, req.id)}
+                                            onClick={() => handleAcceptQuote(quote.id)}
+                                            disabled={accepting === quote.id}
                                             className="bg-brand-lime text-brand-dark font-black text-[10px] px-3 py-1 rounded-full animate-fade-in"
                                           >
-                                            Accept
+                                            {accepting === quote.id ? 'Accepting…' : 'Accept'}
                                           </Button>
                                           <Button 
                                             size="sm" 
@@ -859,7 +889,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                           <div className="flex gap-6">
                             <div className="relative flex-shrink-0">
                               <img 
-                                src={booking.profiles_talent?.profile_photo_url || 'https://picsum.photos/seed/talent/100/100'} 
+                                src={cldImage(booking.profiles_talent?.profile_photo_url, 'avatar') || '/avatar-placeholder.svg'} 
                                 alt={booking.profiles_talent?.stage_name}
                                 className="w-14 h-14 rounded-full object-cover border-2 border-white/10"
                               />
@@ -992,7 +1022,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                             <td className="p-4">
                               <div className="flex items-center gap-3">
                                 <img 
-                                  src={b.profiles_talent?.profile_photo_url || 'https://picsum.photos/seed/talent/50/50'} 
+                                  src={cldImage(b.profiles_talent?.profile_photo_url, 'avatar') || '/avatar-placeholder.svg'} 
                                   className="w-8 h-8 rounded-full object-cover border border-white/10"
                                   alt=""
                                 />
@@ -1044,7 +1074,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
             <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
               <div className="flex items-center gap-4">
                 <img 
-                  src={activeMessageBooking.profiles_talent?.profile_photo_url || 'https://picsum.photos/seed/talent/100/100'} 
+                  src={cldImage(activeMessageBooking.profiles_talent?.profile_photo_url, 'avatar') || '/avatar-placeholder.svg'} 
                   className="w-10 h-10 rounded-full object-cover border-2 border-white/10"
                   alt=""
                 />
@@ -1066,7 +1096,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                     <div className={`flex gap-3 max-w-[80%] ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
                       {!isMine && (
                         <img 
-                          src={activeMessageBooking.profiles_talent?.profile_photo_url || 'https://picsum.photos/seed/talent/50/50'} 
+                          src={cldImage(activeMessageBooking.profiles_talent?.profile_photo_url, 'avatar') || '/avatar-placeholder.svg'} 
                           className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                           alt=""
                         />

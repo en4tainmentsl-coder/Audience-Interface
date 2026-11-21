@@ -13,6 +13,10 @@ export interface Artist {
   id: string;
   name: string;
   category: string;
+  /** All genres this talent holds — primary first, empty slots dropped.
+   *  category stays the primary alone, for card display. The filter matches
+   *  against this array, so a secondary or tertiary genre is findable too. */
+  genres: string[];
   imageUrl: string;
   stats: RawTalentStats;
   description: string;
@@ -35,7 +39,6 @@ export interface Quote {
   expires_at?: string;
   notes_to_client?: string;
   travel_fee?: number;
-  equipment_fee?: number;
   profiles_talent?: {
     stage_name: string;
     profile_photo_url: string;

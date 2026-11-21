@@ -56,6 +56,7 @@ export const Home: React.FC = () => {
             description: talent.short_bio || '',
             bio: talent.bio || '',
             category: primaryGenre,
+            genres,
             stats: talent.talent_stats,
             gallery: media.filter(m => m.resource_type === 'image').map(m => m.cloudinary_secure_url) || [],
             is_featured: !!talent.is_featured,
@@ -81,15 +82,23 @@ export const Home: React.FC = () => {
     <div className="min-h-screen" id="home-page">
       
       <section className="relative h-screen flex items-center overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <img 
-            src="https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&q=80&w=1920" 
-            alt="Concert Stage Atmosphere" 
-            className="w-full h-full object-cover opacity-50 contrast-125 scale-105 animate-slow-zoom"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-brand-dark via-brand-dark/70 to-brand-purple/20" />
-          <div className="absolute inset-0 bg-gradient-to-r from-brand-dark via-transparent to-brand-dark" />
-        </div>
+        {/* Stage rig, entirely in CSS - ten lamps in four composited groups.
+            No image files, no blur filters, nothing on the main thread.
+
+            These layers are FIXED, not absolute, at z-index -1. Pinning them to
+            the viewport is what keeps the rig lit while the page scrolls over
+            it; -1 puts them behind every static element (the Footer included)
+            without needing a z-index on each section. The sections below are
+            translucent so the rig reads through them. */}
+        <div className="stage-layer stage-wash" aria-hidden="true" />
+        <div className="stage-layer stage-beam stage-beam1" aria-hidden="true" />
+        <div className="stage-layer stage-beam stage-beam2" aria-hidden="true" />
+        <div className="stage-layer stage-beam stage-beam3" aria-hidden="true" />
+        <div className="stage-layer stage-beam stage-beam4" aria-hidden="true" />
+        <div className="stage-layer stage-pool" aria-hidden="true" />
+        <div className="stage-layer stage-specks" aria-hidden="true" />
+        <div className="stage-layer stage-grad-t" aria-hidden="true" />
+        <div className="stage-layer stage-grad-r" aria-hidden="true" />
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-left">
           <div className="max-w-3xl">
@@ -126,7 +135,7 @@ export const Home: React.FC = () => {
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-brand-purple/20 blur-[120px] rounded-full animate-bounce-slow" />
       </section>
 
-      <section className="py-32 bg-brand-dark relative text-left" id="rising-stars-section">
+      <section className="pt-[13rem] pb-32 relative text-left stage-veil-first" id="rising-stars-section">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
             <div className="max-w-lg">
@@ -143,7 +152,7 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
-      <section className="py-40 bg-brand-dark relative overflow-hidden" id="cta-section">
+      <section className="py-40 relative overflow-hidden stage-veil" id="cta-section">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,#8b5cf6_0%,transparent_50%)]" />
         </div>
@@ -163,14 +172,181 @@ export const Home: React.FC = () => {
       </section>
 
       <style>{`
-        @keyframes slow-zoom {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.1); }
-          100% { transform: scale(1); }
+
+        /* ---------------- STAGE RIG ----------------
+           Ten lamps in four rotating groups. Each group carries its own beams
+           AND their lamp glows so a beam stays attached to its fixture, and
+           pivots as one truss. Four composited textures, not ten.
+
+           Beams are conic gradients: soft edges for free, with no blur filter
+           and so no per-frame GPU work on a low-end phone.
+
+           0deg points up and angles grow clockwise; each wedge peaks about
+           16deg after its "from", so effective aim is roughly from + 16.
+           180 is straight down. */
+
+        .stage-layer {
+          position: fixed;
+          inset: 0;
+          z-index: -1;
+          pointer-events: none;
         }
-        .animate-slow-zoom {
-          animation: slow-zoom 20s infinite ease-in-out;
+        .stage-beam { will-change: transform; }
+
+        .stage-wash {
+          background-color: #0f0518;
+          background-image:
+            radial-gradient(ellipse 55% 42% at 50% 0%,    rgba(124,58,237,.30), transparent 70%),
+            radial-gradient(ellipse 85% 70% at 22% 2%,    rgba(139,92,246,.40), transparent 65%),
+            radial-gradient(ellipse 70% 55% at 88% 6%,    rgba(124,58,237,.34), transparent 62%),
+            radial-gradient(ellipse 100% 62% at 50% 108%, rgba(67,56,202,.40),  transparent 68%);
         }
+
+        /* LEFT BANK - 3 lamps on the left edge, raking right and down */
+        .stage-beam1 {
+          transform-origin: 2% 31%;
+          background:
+            radial-gradient(circle 44px at 3% 13%, rgba(167,139,250,.30), transparent 72%),
+            radial-gradient(circle 8px  at 3% 13%, rgba(237,233,254,.92), transparent 75%),
+            radial-gradient(circle 48px at 2% 31%, rgba(139,92,246,.30), transparent 72%),
+            radial-gradient(circle 9px  at 2% 31%, rgba(245,243,255,.94), transparent 75%),
+            radial-gradient(circle 42px at 3% 49%, rgba(124,58,237,.26), transparent 72%),
+            radial-gradient(circle 7px  at 3% 49%, rgba(221,214,254,.84), transparent 75%),
+            conic-gradient(from 129deg at 3% 13%,
+              transparent 0deg, rgba(167,139,250,.00) 4deg, rgba(167,139,250,.32) 11deg,
+              rgba(221,214,254,.42) 16deg, rgba(167,139,250,.27) 22deg, rgba(167,139,250,.00) 30deg, transparent 35deg),
+            conic-gradient(from 116deg at 2% 31%,
+              transparent 0deg, rgba(139,92,246,.00) 4deg, rgba(139,92,246,.24) 11deg,
+              rgba(196,181,253,.31) 16deg, rgba(139,92,246,.19) 22deg, rgba(139,92,246,.00) 29deg, transparent 34deg),
+            conic-gradient(from 104deg at 3% 49%,
+              transparent 0deg, rgba(124,58,237,.00) 4deg, rgba(124,58,237,.20) 10deg,
+              rgba(196,181,253,.26) 15deg, rgba(124,58,237,.16) 21deg, rgba(124,58,237,.00) 28deg, transparent 33deg);
+        }
+
+        /* OVERHEAD - inner pair */
+        .stage-beam2 {
+          transform-origin: 24% 1%;
+          background:
+            radial-gradient(circle 46px at 12% 1%, rgba(167,139,250,.31), transparent 72%),
+            radial-gradient(circle 8px  at 12% 1%, rgba(237,233,254,.92), transparent 75%),
+            radial-gradient(circle 50px at 37% 1%, rgba(139,92,246,.33), transparent 72%),
+            radial-gradient(circle 9px  at 37% 1%, rgba(245,243,255,.95), transparent 75%),
+            conic-gradient(from 139deg at 12% 1%,
+              transparent 0deg, rgba(167,139,250,.00) 4deg, rgba(167,139,250,.29) 11deg,
+              rgba(237,233,254,.38) 16deg, rgba(167,139,250,.23) 22deg, rgba(167,139,250,.00) 30deg, transparent 35deg),
+            conic-gradient(from 156deg at 37% 1%,
+              transparent 0deg, rgba(139,92,246,.00) 4deg, rgba(139,92,246,.27) 11deg,
+              rgba(221,214,254,.36) 16deg, rgba(139,92,246,.21) 22deg, rgba(139,92,246,.00) 29deg, transparent 34deg);
+        }
+
+        /* OVERHEAD - outer pair */
+        .stage-beam3 {
+          transform-origin: 76% 1%;
+          background:
+            radial-gradient(circle 50px at 63% 1%, rgba(139,92,246,.33), transparent 72%),
+            radial-gradient(circle 9px  at 63% 1%, rgba(245,243,255,.95), transparent 75%),
+            radial-gradient(circle 46px at 88% 1%, rgba(167,139,250,.31), transparent 72%),
+            radial-gradient(circle 8px  at 88% 1%, rgba(237,233,254,.92), transparent 75%),
+            conic-gradient(from 172deg at 63% 1%,
+              transparent 0deg, rgba(139,92,246,.00) 4deg, rgba(139,92,246,.27) 11deg,
+              rgba(221,214,254,.36) 16deg, rgba(139,92,246,.21) 22deg, rgba(139,92,246,.00) 29deg, transparent 34deg),
+            conic-gradient(from 189deg at 88% 1%,
+              transparent 0deg, rgba(167,139,250,.00) 4deg, rgba(167,139,250,.29) 11deg,
+              rgba(237,233,254,.38) 16deg, rgba(167,139,250,.23) 22deg, rgba(167,139,250,.00) 30deg, transparent 35deg);
+        }
+
+        /* RIGHT BANK - 3 lamps on the right edge, raking left and down */
+        .stage-beam4 {
+          transform-origin: 98% 31%;
+          background:
+            radial-gradient(circle 44px at 97% 13%, rgba(167,139,250,.30), transparent 72%),
+            radial-gradient(circle 8px  at 97% 13%, rgba(237,233,254,.92), transparent 75%),
+            radial-gradient(circle 48px at 98% 31%, rgba(139,92,246,.30), transparent 72%),
+            radial-gradient(circle 9px  at 98% 31%, rgba(245,243,255,.94), transparent 75%),
+            radial-gradient(circle 42px at 97% 49%, rgba(124,58,237,.26), transparent 72%),
+            radial-gradient(circle 7px  at 97% 49%, rgba(221,214,254,.84), transparent 75%),
+            conic-gradient(from 199deg at 97% 13%,
+              transparent 0deg, rgba(167,139,250,.00) 4deg, rgba(167,139,250,.32) 11deg,
+              rgba(221,214,254,.42) 16deg, rgba(167,139,250,.27) 22deg, rgba(167,139,250,.00) 30deg, transparent 35deg),
+            conic-gradient(from 212deg at 98% 31%,
+              transparent 0deg, rgba(139,92,246,.00) 4deg, rgba(139,92,246,.24) 11deg,
+              rgba(196,181,253,.31) 16deg, rgba(139,92,246,.19) 22deg, rgba(139,92,246,.00) 29deg, transparent 34deg),
+            conic-gradient(from 224deg at 97% 49%,
+              transparent 0deg, rgba(124,58,237,.00) 4deg, rgba(124,58,237,.20) 10deg,
+              rgba(196,181,253,.26) 15deg, rgba(124,58,237,.16) 21deg, rgba(124,58,237,.00) 28deg, transparent 33deg);
+        }
+
+        .stage-pool {
+          background-image:
+            radial-gradient(ellipse 30% 5% at 24% 100%, rgba(139,92,246,.16), transparent 70%),
+            radial-gradient(ellipse 36% 6% at 46% 99%,  rgba(167,139,250,.24), transparent 70%),
+            radial-gradient(ellipse 34% 5% at 68% 100%, rgba(167,139,250,.20), transparent 70%),
+            radial-gradient(ellipse 26% 4% at 88% 100%, rgba(139,92,246,.13), transparent 70%);
+        }
+
+        .stage-specks {
+          background-image:
+            radial-gradient(circle, rgba(237,233,254,.90) 1.4px, transparent 2.3px),
+            radial-gradient(circle, rgba(167,139,250,.75) 1.3px, transparent 2.1px),
+            radial-gradient(circle, rgba(196,181,253,.80) 1.9px, transparent 2.8px),
+            radial-gradient(circle, rgba(139,92,246,.85) 1.7px, transparent 2.6px);
+          background-size: 211px 173px, 317px 263px, 439px 367px, 373px 311px;
+          background-position: 0 0, 47px 83px, 131px 29px, 211px 157px;
+          opacity: .85;
+          -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0,0,0,.8) 32%, rgba(0,0,0,.2) 64%, transparent 86%);
+          mask-image: linear-gradient(to bottom, #000 0%, rgba(0,0,0,.8) 32%, rgba(0,0,0,.2) 64%, transparent 86%);
+        }
+
+        /* These two were the hero's contrast gradients. Now the stack is
+           pinned they darken the bottom and sides of EVERY screen, not just
+           the hero, so both are much softer than they were - at the old
+           strength they erased the rig behind the sections entirely. */
+        .stage-grad-t {
+          background-image: linear-gradient(to top,
+            rgba(15,5,24,.58) 0%, rgba(15,5,24,.40) 30%, rgba(15,5,24,.22) 62%, rgba(139,92,246,.18) 100%);
+        }
+        .stage-grad-r {
+          background-image: linear-gradient(to right,
+            rgba(15,5,24,.72) 0%, rgba(15,5,24,.38) 26%, transparent 52%, rgba(15,5,24,.30) 100%);
+        }
+
+        /* Sections are translucent so the rig stays visible behind them.
+           The first one fades in rather than cutting across the beams on a
+           hard line. Raise .86 toward .92 if body copy feels strained. */
+        .stage-veil { background-color: rgba(15,5,24,.86); }
+        .stage-veil-first {
+          background-image: linear-gradient(to bottom,
+            rgba(15,5,24,0) 0, rgba(15,5,24,.86) 190px, rgba(15,5,24,.86) 100%);
+        }
+
+        /* Scroll-driven sweep. animation-timeline runs on the compositor -
+           no scroll listener, no rAF, nothing that stutters when the main
+           thread is busy. The side banks shoot near-horizontally, so the same
+           few degrees moves their far end much further: they swing less. */
+        @keyframes stage-sweep-a { from { transform: rotate(-3deg); } to { transform: rotate(4deg); } }
+        @keyframes stage-sweep-b { from { transform: rotate(4deg); }  to { transform: rotate(-5deg); } }
+        @keyframes stage-sweep-c { from { transform: rotate(-3deg); } to { transform: rotate(7deg); } }
+        @keyframes stage-sweep-d { from { transform: rotate(3deg); }  to { transform: rotate(-4deg); } }
+        @keyframes stage-drift   { from { transform: translateY(0); } to { transform: translateY(-14%); } }
+
+        @supports (animation-timeline: scroll()) {
+          .stage-beam1  { animation: stage-sweep-a linear both; animation-timeline: scroll(); animation-range: 0 240vh; }
+          .stage-beam2  { animation: stage-sweep-b linear both; animation-timeline: scroll(); animation-range: 0 240vh; }
+          .stage-beam3  { animation: stage-sweep-c linear both; animation-timeline: scroll(); animation-range: 0 240vh; }
+          .stage-beam4  { animation: stage-sweep-d linear both; animation-timeline: scroll(); animation-range: 0 240vh; }
+          .stage-specks { animation: stage-drift   linear both; animation-timeline: scroll(); animation-range: 0 240vh; }
+        }
+        /* Browsers without scroll timelines still get motion, just on a timer. */
+        @supports not (animation-timeline: scroll()) {
+          .stage-beam1 { animation: stage-sweep-a 14s ease-in-out infinite alternate; }
+          .stage-beam2 { animation: stage-sweep-b 17s ease-in-out infinite alternate; }
+          .stage-beam3 { animation: stage-sweep-c 12s ease-in-out infinite alternate; }
+          .stage-beam4 { animation: stage-sweep-d 19s ease-in-out infinite alternate; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .stage-beam, .stage-specks { animation: none !important; }
+        }
+        /* -------------- END STAGE RIG -------------- */
         .animate-pulse-slow {
           animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }

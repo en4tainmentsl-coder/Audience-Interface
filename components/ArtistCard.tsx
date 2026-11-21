@@ -5,6 +5,7 @@ import { ArrowRight, Heart, AlertCircle } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { Artist } from '../types';
 import { SignInModal } from './SignInModal';
+import { cldImage } from '../utils/cloudinary';
 
 interface ArtistCardProps {
   artist: Artist;
@@ -86,8 +87,9 @@ export const ArtistCard: React.FC<ArtistCardProps> = ({ artist }) => {
         <div className="relative h-64 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-t from-brand-surface to-transparent opacity-60 z-10" />
           <img 
-            src={artist.imageUrl} 
+            src={cldImage(artist.imageUrl, 'card')} 
             alt={artist.name} 
+            decoding="async"
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 filter saturate-50 group-hover:saturate-100" 
           />
           <div className="absolute bottom-4 left-4 z-20">

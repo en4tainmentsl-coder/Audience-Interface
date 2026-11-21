@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, ShieldCheck } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { FacebookIcon, InstagramIcon, YoutubeIcon } from './SocialIcons';
 import { Link } from 'react-router';
 import { LOGO_URL, SOCIAL_LINKS } from '../constants';
@@ -76,10 +76,6 @@ export const Footer: React.FC = () => {
                 <YoutubeIcon size={20} />
               </a>
             </div>
-            
-            <Link to="/admin" className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-600 hover:text-brand-purple transition-colors border border-white/5 px-3 py-1.5 rounded-lg hover:border-brand-purple/30" id="admin-access-link">
-              <ShieldCheck size={14} /> Admin Access
-            </Link>
           </div>
         </div>
 
