@@ -5,6 +5,7 @@ import { supabase } from '../services/supabase';
 import { Artist } from '../types';
 import { TalentRating } from './TalentRating';
 import { SignInModal } from './SignInModal';
+import { cldImage } from '../utils/cloudinary';
 
 // ─────────────────────────────────────────────────────────────────────────
 // FlexArtistCard
@@ -113,8 +114,9 @@ export const FlexArtistCard: React.FC<FlexArtistCardProps> = ({ artist, featured
         <div className={`relative overflow-hidden ${featured ? 'h-72' : 'h-52'}`}>
           <div className="absolute inset-0 bg-gradient-to-t from-brand-surface via-transparent to-transparent opacity-70 z-10" />
           <img
-            src={artist.imageUrl}
+            src={cldImage(artist.imageUrl, 'card')}
             alt={artist.name}
+            decoding="async"
             className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700 filter saturate-[.65] group-hover:saturate-100"
           />
 
