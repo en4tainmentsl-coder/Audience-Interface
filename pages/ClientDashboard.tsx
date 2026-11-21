@@ -103,6 +103,7 @@ export const ClientDashboard: React.FC = () => {
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<ClientDashboardFavorite[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [showClosed, setShowClosed] = useState<boolean>(false);
   const navigate = useNavigate();
 
   const fetchData = async (userId: string): Promise<void> => {
@@ -261,6 +262,16 @@ export const ClientDashboard: React.FC = () => {
     navigate('/');
   };
 
+  // A request is live while it still needs the client: waiting on the artist,
+  // or carrying a quote to accept. Everything else is history the client may
+  // want to look back at - a decline and its reason, an expiry, a request that
+  // became a booking - so it is kept, but folded away by default rather than
+  // burying the one row that needs attention.
+  const LIVE_STATUSES = ['open', 'matched'];
+  const liveQuotes = quotes.filter((q) => LIVE_STATUSES.includes(q.status));
+  const closedQuotes = quotes.filter((q) => !LIVE_STATUSES.includes(q.status));
+  const visibleQuotes = showClosed ? [...liveQuotes, ...closedQuotes] : liveQuotes;
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-brand-dark" id="client-dashboard-loading">
@@ -378,7 +389,7 @@ export const ClientDashboard: React.FC = () => {
             <section className="bg-brand-surface rounded-2xl border border-white/10 p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-brand-pink" /> Open Quote Requests
+                  <Clock className="w-5 h-5 text-brand-pink" /> Quote Requests
                 </h2>
               </div>
 
@@ -388,13 +399,17 @@ export const ClientDashboard: React.FC = () => {
                 </div>
               )}
               
-              {quotes.length === 0 ? (
+              {visibleQuotes.length === 0 ? (
                 <div className="text-center py-12 border border-dashed border-white/10 rounded-xl" id="no-open-quotes-dashboard">
-                  <p className="text-gray-500">No open quote requests.</p>
+                  <p className="text-gray-500">
+                    {closedQuotes.length === 0
+                      ? 'No quote requests yet.'
+                      : 'Nothing needs you right now.'}
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-4" id="quotes-list">
-                  {quotes.map((quote: ClientDashboardQuote) => (
+                  {visibleQuotes.map((quote: ClientDashboardQuote) => (
                     <div
                       key={quote.id}
                       className="bg-brand-dark/50 border border-white/5 rounded-xl p-4 space-y-4"
@@ -497,6 +512,19 @@ export const ClientDashboard: React.FC = () => {
                     </div>
                   ))}
                 </div>
+              )}
+
+              {closedQuotes.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowClosed((v) => !v)}
+                  className="mt-4 text-sm text-gray-400 hover:text-white transition-colors"
+                  id="toggle-closed-quotes"
+                >
+                  {showClosed
+                    ? 'Hide closed requests'
+                    : `Show ${closedQuotes.length} closed request${closedQuotes.length === 1 ? '' : 's'}`}
+                </button>
               )}
             </section>
           </div>
