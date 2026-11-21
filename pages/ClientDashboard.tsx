@@ -62,17 +62,49 @@ interface ClientDashboardQuoteOffer {
   performer_count: number | null;
 }
 
+// Everything the client pays for the engagement itself: the talent's fee, En4's
+// client-side commission, and travel, meals and accommodation where they apply.
+//
+// Derived by SUBTRACTING the separately itemised lines from the total rather
+// than summed from the parts. Two reasons. The breakdown can then never
+// disagree with the total - it previously showed lines summing to 10% less than
+// the total, because the client commission leg had no line and was never meant
+// to have one. And commission_client_amount still never has to be fetched, so
+// En4's margin stays out of the browser entirely.
+//
+// SSCL, VAT and the gateway fee keep their own lines deliberately: a tax
+// invoice must state the tax charged separately from the value of the supply,
+// so bundling them would not survive VAT registration.
+const engagementAmount = (q: ClientDashboardQuoteOffer): string =>
+  String(
+    Number(q.total_client_price ?? 0) -
+      Number(q.sscl_amount ?? 0) -
+      Number(q.vat_amount ?? 0) -
+      Number(q.gateway_fee_amount ?? 0),
+  );
+
 interface ClientDashboardQuote {
   id: string;
   event_type: string;
   starts_at: string;
   status: string;
+  decline_reason: string | null;
+  decline_note: string | null;
   profiles_talent?: {
     stage_name: string;
     profile_photo_url?: string;
   };
-  quotes?: ClientDashboardQuoteOffer[];
+  quotes?: ClientDashboardQuoteOffer | null;
 }
+
+// The artist picks an enum; the client reads a sentence. Never show the label.
+// Must cover every value of public.quote_decline_reason.
+const DECLINE_SENTENCES: Record<string, string> = {
+  schedule_conflict: 'The artist is not available at that time.',
+  outside_service_area: 'The event is outside the area the artist travels to.',
+  event_type_mismatch: 'The artist does not take this kind of event.',
+  other: 'The artist is unable to take this booking.',
+};
 
 interface ClientDashboardFavorite {
   id: string;
@@ -92,6 +124,7 @@ export const ClientDashboard: React.FC = () => {
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<ClientDashboardFavorite[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [showClosed, setShowClosed] = useState<boolean>(false);
   const navigate = useNavigate();
 
   const fetchData = async (userId: string): Promise<void> => {
@@ -113,13 +146,15 @@ export const ClientDashboard: React.FC = () => {
       setBookings(((bookingsData as unknown) as ClientDashboardBooking[]) || []);
 
       // Fetch Quotes
-      const { data: quotesData } = await supabase
+      const { data: quotesData, error: quotesError } = await supabase
         .from('quote_requests')
         .select(`
           id,
           event_type,
           starts_at,
           status,
+          decline_reason,
+          decline_note,
           profiles_talent (stage_name, profile_photo_url),
           quotes (
             id,
@@ -140,6 +175,7 @@ export const ClientDashboard: React.FC = () => {
         .eq('client_user_id', userId)
         .order('created_at', { ascending: false });
       
+      if (quotesError) setActionMessage('Could not load your quote requests. Please refresh.');
       setQuotes(((quotesData as unknown) as ClientDashboardQuote[]) || []);
 
       // Fetch Favorites
@@ -201,7 +237,11 @@ export const ClientDashboard: React.FC = () => {
         return;
       }
 
-      setActionMessage('Quote accepted — your booking is confirmed.');
+      // Not "confirmed". booking_status is 'pending' here and stays there until
+      // payment is arranged, which is manual until PayHere ships. Telling a client
+      // their booking is confirmed contradicts the PENDING badge on the same screen,
+      // and sets an expectation nothing in the system has met yet.
+      setActionMessage('Quote accepted. Your booking is pending until payment is arranged — we will be in touch.');
       fetchData(session.user.id);
     } catch {
       setActionMessage('Could not accept the quote. Please try again.');
@@ -246,6 +286,16 @@ export const ClientDashboard: React.FC = () => {
     await supabase.auth.signOut();
     navigate('/');
   };
+
+  // A request is live while it still needs the client: waiting on the artist,
+  // or carrying a quote to accept. Everything else is history the client may
+  // want to look back at - a decline and its reason, an expiry, a request that
+  // became a booking - so it is kept, but folded away by default rather than
+  // burying the one row that needs attention.
+  const LIVE_STATUSES = ['open', 'matched'];
+  const liveQuotes = quotes.filter((q) => LIVE_STATUSES.includes(q.status));
+  const closedQuotes = quotes.filter((q) => !LIVE_STATUSES.includes(q.status));
+  const visibleQuotes = showClosed ? [...liveQuotes, ...closedQuotes] : liveQuotes;
 
   if (loading) {
     return (
@@ -292,7 +342,7 @@ export const ClientDashboard: React.FC = () => {
                   {favorites.map((fav: ClientDashboardFavorite) => (
                     <div key={fav.id} className="flex items-center gap-4 group cursor-pointer" onClick={() => fav.profiles_talent?.id && navigate(`/artists/${fav.profiles_talent.id}`)}>
                       <img 
-                        src={cldImage(fav.profiles_talent?.profile_photo_url, 'avatar') || 'https://picsum.photos/seed/artist/100/100'} 
+                        src={cldImage(fav.profiles_talent?.profile_photo_url, 'avatar') || '/avatar-placeholder.svg'} 
                         alt={fav.profiles_talent?.stage_name}
                         className="w-12 h-12 rounded-lg object-cover border border-white/10 animate-fade-in"
                       />
@@ -331,7 +381,7 @@ export const ClientDashboard: React.FC = () => {
                     >
                       <div className="flex items-center gap-4">
                         <img 
-                          src={cldImage(booking.profiles_talent?.profile_photo_url, 'avatar') || 'https://picsum.photos/seed/artist/100/100'} 
+                          src={cldImage(booking.profiles_talent?.profile_photo_url, 'avatar') || '/avatar-placeholder.svg'} 
                           alt={booking.profiles_talent?.stage_name}
                           className="w-12 h-12 rounded-lg object-cover"
                         />
@@ -364,7 +414,7 @@ export const ClientDashboard: React.FC = () => {
             <section className="bg-brand-surface rounded-2xl border border-white/10 p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-brand-pink" /> Open Quote Requests
+                  <Clock className="w-5 h-5 text-brand-pink" /> Quote Requests
                 </h2>
               </div>
 
@@ -374,13 +424,17 @@ export const ClientDashboard: React.FC = () => {
                 </div>
               )}
               
-              {quotes.length === 0 ? (
+              {visibleQuotes.length === 0 ? (
                 <div className="text-center py-12 border border-dashed border-white/10 rounded-xl" id="no-open-quotes-dashboard">
-                  <p className="text-gray-500">No open quote requests.</p>
+                  <p className="text-gray-500">
+                    {closedQuotes.length === 0
+                      ? 'No quote requests yet.'
+                      : 'Nothing needs you right now.'}
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-4" id="quotes-list">
-                  {quotes.map((quote: ClientDashboardQuote) => (
+                  {visibleQuotes.map((quote: ClientDashboardQuote) => (
                     <div
                       key={quote.id}
                       className="bg-brand-dark/50 border border-white/5 rounded-xl p-4 space-y-4"
@@ -404,69 +458,89 @@ export const ClientDashboard: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* The offer itself. quotes_one_per_request means there is at
-                          most one, but PostgREST returns an array for the embed. */}
-                      {quote.quotes?.[0] && quote.quotes[0].quote_status === 'pending' && (
+                      {/* A declined request is closed for good: it names one artist
+                          and cannot be passed to another. Say why, and what to do. */}
+                      {quote.status === 'declined' && (
+                        <div className="border-t border-white/5 pt-4 space-y-1 text-sm text-gray-400">
+                          <p>
+                            {DECLINE_SENTENCES[quote.decline_reason ?? ''] ?? DECLINE_SENTENCES.other}
+                          </p>
+                          {quote.decline_note && (
+                            <p className="italic">&ldquo;{quote.decline_note}&rdquo;</p>
+                          )}
+                          <p className="text-xs text-gray-500">
+                            This request is now closed. You can send a new request to another artist.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* The offer itself. quotes_one_per_request is UNIQUE on quote_request_id, so
+                          PostgREST returns an object here, or null, never an array. */}
+                      {quote.quotes && quote.quotes.quote_status === 'pending' && (
                         <div className="border-t border-white/5 pt-4 space-y-3">
                           <div className="space-y-1 text-sm">
                             <div className="flex justify-between text-gray-400">
-                              <span>Performance fee</span><span>{money(quote.quotes[0].quoted_amount)}</span>
+                              <span>Performance fee*</span><span>{money(engagementAmount(quote.quotes))}</span>
                             </div>
-                            {Number(quote.quotes[0].travel_fee ?? 0) > 0 && (
+                            {Number(quote.quotes.sscl_amount ?? 0) > 0 && (
                               <div className="flex justify-between text-gray-400">
-                                <span>Travel</span><span>{money(quote.quotes[0].travel_fee)}</span>
+                                <span>SSCL</span><span>{money(quote.quotes.sscl_amount)}</span>
                               </div>
                             )}
-                            {Number(quote.quotes[0].meals_fee ?? 0) > 0 && (
+                            {Number(quote.quotes.vat_amount ?? 0) > 0 && (
                               <div className="flex justify-between text-gray-400">
-                                <span>Meals</span><span>{money(quote.quotes[0].meals_fee)}</span>
+                                <span>VAT</span><span>{money(quote.quotes.vat_amount)}</span>
                               </div>
                             )}
-                            {Number(quote.quotes[0].accommodation_fee ?? 0) > 0 && (
+                            {Number(quote.quotes.gateway_fee_amount ?? 0) > 0 && (
                               <div className="flex justify-between text-gray-400">
-                                <span>Accommodation</span><span>{money(quote.quotes[0].accommodation_fee)}</span>
-                              </div>
-                            )}
-                            {Number(quote.quotes[0].sscl_amount ?? 0) > 0 && (
-                              <div className="flex justify-between text-gray-400">
-                                <span>SSCL</span><span>{money(quote.quotes[0].sscl_amount)}</span>
-                              </div>
-                            )}
-                            {Number(quote.quotes[0].vat_amount ?? 0) > 0 && (
-                              <div className="flex justify-between text-gray-400">
-                                <span>VAT</span><span>{money(quote.quotes[0].vat_amount)}</span>
-                              </div>
-                            )}
-                            {Number(quote.quotes[0].gateway_fee_amount ?? 0) > 0 && (
-                              <div className="flex justify-between text-gray-400">
-                                <span>Payment processing</span><span>{money(quote.quotes[0].gateway_fee_amount)}</span>
+                                <span>Payment processing</span><span>{money(quote.quotes.gateway_fee_amount)}</span>
                               </div>
                             )}
                             <div className="flex justify-between font-bold text-white pt-2 border-t border-white/5">
-                              <span>Total</span><span>{money(quote.quotes[0].total_client_price)}</span>
+                              <span>Total</span><span>{money(quote.quotes.total_client_price)}</span>
                             </div>
+                            <p className="pt-2 text-xs text-gray-500">
+                              * Covers the performers, their instruments and equipment,
+                              travel, meals and accommodation.
+                              {Number(quote.quotes.travel_fee ?? 0) > 0 &&
+                                ` Includes ${money(quote.quotes.travel_fee)} for travel.`}
+                            </p>
                           </div>
 
-                          {quote.quotes[0].notes_to_client && (
-                            <p className="text-sm text-gray-400 italic">{quote.quotes[0].notes_to_client}</p>
+                          {quote.quotes.notes_to_client && (
+                            <p className="text-sm text-gray-400 italic">{quote.quotes.notes_to_client}</p>
                           )}
 
                           <p className="text-xs text-gray-500">
-                            Valid until {lkDate(quote.quotes[0].expires_at)}. Accepting confirms the booking.
+                            Valid until {lkDate(quote.quotes.expires_at)}. Accepting confirms the booking.
                           </p>
 
                           <Button
-                            onClick={() => handleAcceptQuote(quote.quotes![0].id)}
-                            disabled={accepting === quote.quotes[0].id}
+                            onClick={() => handleAcceptQuote(quote.quotes!.id)}
+                            disabled={accepting === quote.quotes.id}
                             size="sm"
                           >
-                            {accepting === quote.quotes[0].id ? 'Accepting…' : 'Accept quote'}
+                            {accepting === quote.quotes.id ? 'Accepting…' : 'Accept quote'}
                           </Button>
                         </div>
                       )}
                     </div>
                   ))}
                 </div>
+              )}
+
+              {closedQuotes.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowClosed((v) => !v)}
+                  className="mt-4 text-sm text-gray-400 hover:text-white transition-colors"
+                  id="toggle-closed-quotes"
+                >
+                  {showClosed
+                    ? 'Hide closed requests'
+                    : `Show ${closedQuotes.length} closed request${closedQuotes.length === 1 ? '' : 's'}`}
+                </button>
               )}
             </section>
           </div>

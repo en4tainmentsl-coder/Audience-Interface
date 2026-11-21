@@ -24,7 +24,7 @@ const UPLOAD = '/image/upload/';
  * Inserts f_auto,q_auto,w_<preset> into a Cloudinary delivery URL.
  *
  * Returns the input unchanged for anything that is not a plain Cloudinary
- * delivery URL - the logo, the picsum and Unsplash placeholders, an already
+ * delivery URL - the logo, a local asset like /avatar-placeholder.svg, an already
  * transformed URL - so call sites never have to check first. Returns undefined
  * for an empty value, which omits the src attribute rather than emitting
  * src="" (that re-requests the page itself).

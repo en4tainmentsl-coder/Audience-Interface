@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router';
 import { Button } from '../components/Button';
 import { supabase } from '../services/supabase';
-import { DISTRICTS, findDistrict } from '../constants/districts';
+import { TownAutocomplete, type TownPick } from '../components/TownAutocomplete';
 import { CheckCircle, Music, MapPin, Calendar, Clock, AlertCircle } from 'lucide-react';
 import type { Database } from '../database.types';
 import { EVENT_TYPES } from '../constants/eventTypes';
@@ -40,7 +40,10 @@ interface QuoteFormData {
   endTime: string;
   location: string;
   eventAddress: string;
-  districtCode: string;
+  townLabel: string;
+  townId: number | null;
+  townLatitude: number | null;
+  townLongitude: number | null;
   venueId: string;
   talentId: string;
   eventType: EventType | '';
@@ -66,7 +69,10 @@ export const RequestQuote: React.FC = () => {
     endTime: '',
     location: '',
     eventAddress: '',
-    districtCode: '',
+    townLabel: '',
+    townId: null,
+    townLatitude: null,
+    townLongitude: null,
     venueId: '',
     talentId: preSelectedTalentId || '',
     eventType: '',
@@ -186,7 +192,7 @@ export const RequestQuote: React.FC = () => {
   // than firing on mount.
   //
   // Clients: any approved venue, as the event location. venue_id stays optional
-  // and the district selection carries the location when none is chosen.
+  // and the town selection carries the location when none is chosen.
   //
   // Venue-role users: ONLY their own approved venues. D-020 rejects a
   // venue-role insert with venue_id NULL at the RLS layer, so the picker is
@@ -243,8 +249,8 @@ export const RequestQuote: React.FC = () => {
       return;
     }
 
-    if (!formData.districtCode) {
-      setErrorMessage("Please select the district where the event will take place.");
+    if (!formData.townId) {
+      setErrorMessage("Please choose the town where the event will take place, from the list.");
       return;
     }
 
@@ -276,16 +282,17 @@ export const RequestQuote: React.FC = () => {
       const startsAt = `${formData.date}T${formData.startTime}:00${LK_UTC_OFFSET}`;
       const endsAt = `${endDate}T${formData.endTime}:00${LK_UTC_OFFSET}`;
 
-      // Satisfies quote_requests_has_location. District centroid is always
+      // Satisfies quote_requests_has_location. The chosen town's centroid is
       // written as the floor; a selected venue's own coordinates override it
       // when present. Note venue lat/lng are nullable, so venue_id alone would
-      // satisfy the CHECK while leaving distance_km with nothing to compute —
-      // hence the district value is never omitted.
-      const district = findDistrict(formData.districtCode);
+      // satisfy the CHECK while leaving distance_km with nothing to compute -
+      // hence the town value is never omitted. Travel is charged per km on this
+      // distance, so the town replaced a district centroid that could be tens
+      // of kilometres out.
       const venue = venueOptions.find(v => v.id === formData.venueId);
 
-      let eventLatitude: number | null = district?.latitude ?? null;
-      let eventLongitude: number | null = district?.longitude ?? null;
+      let eventLatitude: number | null = formData.townLatitude;
+      let eventLongitude: number | null = formData.townLongitude;
 
       if (venue && venue.latitude !== null && venue.longitude !== null) {
         eventLatitude = Number(venue.latitude);
@@ -439,19 +446,20 @@ export const RequestQuote: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-black text-brand-lime uppercase tracking-widest">District</label>
-                <select
-                  name="districtCode"
-                  required
-                  value={formData.districtCode}
-                  onChange={handleChange}
-                  className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all appearance-none cursor-pointer"
-                >
-                  <option value="">Select a district...</option>
-                  {DISTRICTS.map((d) => (
-                    <option key={d.code} value={d.code}>{d.name}</option>
-                  ))}
-                </select>
+                <label className="text-xs font-black text-brand-lime uppercase tracking-widest">Town</label>
+                <TownAutocomplete
+                  value={formData.townLabel}
+                  townId={formData.townId}
+                  onChange={(pick: TownPick | null, text: string) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      townLabel: text,
+                      townId: pick ? pick.id : null,
+                      townLatitude: pick ? pick.latitude : null,
+                      townLongitude: pick ? pick.longitude : null,
+                    }))
+                  }
+                />
               </div>
 
             <div className="space-y-2">
@@ -640,7 +648,7 @@ export const RequestQuote: React.FC = () => {
                 type="submit"
                 variant="primary"
                 className="w-full py-5 text-lg"
-                disabled={loading || talentLoading || !formData.talentId || !formData.eventType || !formData.districtCode || !fixedTalentTakesThis}
+                disabled={loading || talentLoading || !formData.talentId || !formData.eventType || !formData.townId || !fixedTalentTakesThis}
               >
                 {loading ? 'Processing...' : 'Submit Quote Request'}
               </Button>

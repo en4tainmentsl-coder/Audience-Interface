@@ -7,10 +7,32 @@ export const About: React.FC = () => {
       
       {/* Hero */}
       <div className="relative h-[400px] flex items-center justify-center bg-brand-surface overflow-hidden">
-        <img 
-          src="https://picsum.photos/id/158/1920/600" 
-          alt="Band Performing" 
-          className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-overlay"
+        {/* Stage atmosphere in CSS. Replaced a random picsum.photos image that
+            rendered at opacity-30 with mix-blend-overlay, so what showed here
+            was never a design decision. */}
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundColor: '#1e1b2e',
+            backgroundImage:
+              'radial-gradient(ellipse 80% 90% at 18% 0%, rgba(139,92,246,.42), transparent 66%),' +
+              'radial-gradient(ellipse 65% 80% at 88% 8%, rgba(236,72,153,.30), transparent 64%),' +
+              'radial-gradient(ellipse 70% 70% at 55% 100%, rgba(67,56,202,.34), transparent 70%)',
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle, rgba(255,255,255,.80) 1.3px, transparent 2.1px),' +
+              'radial-gradient(circle, rgba(163,230,53,.70) 1.2px, transparent 2.0px),' +
+              'radial-gradient(circle, rgba(236,72,153,.72) 1.7px, transparent 2.6px)',
+            backgroundSize: '197px 163px, 311px 257px, 419px 353px',
+            backgroundPosition: '0 0, 43px 79px, 127px 31px',
+            opacity: 0.75,
+            WebkitMaskImage: 'linear-gradient(to bottom, #000 0%, rgba(0,0,0,.6) 45%, transparent 88%)',
+            maskImage: 'linear-gradient(to bottom, #000 0%, rgba(0,0,0,.6) 45%, transparent 88%)',
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-brand-dark" />
         <div className="relative z-10 text-center px-4">

@@ -49,7 +49,11 @@ const App = () => {
   return (
     <Router>
       <ScrollToTop />
-      <div className="flex flex-col min-h-screen bg-brand-dark text-white font-sans antialiased selection:bg-brand-pink selection:text-white">
+      {/* No bg-brand-dark here. It is an opaque background on a STATIC element,
+          so it painted over the Home hero's stage rig, whose layers sit at
+          z-index -1. index.html already sets the identical colour on <body>,
+          so every page looks the same and the rig is no longer covered. */}
+      <div className="flex flex-col min-h-screen text-white font-sans antialiased selection:bg-brand-pink selection:text-white">
         <Navbar />
         <main className="flex-grow">
           <Suspense fallback={<RouteFallback />}>
