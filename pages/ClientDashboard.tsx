@@ -237,7 +237,11 @@ export const ClientDashboard: React.FC = () => {
         return;
       }
 
-      setActionMessage('Quote accepted — your booking is confirmed.');
+      // Not "confirmed". booking_status is 'pending' here and stays there until
+      // payment is arranged, which is manual until PayHere ships. Telling a client
+      // their booking is confirmed contradicts the PENDING badge on the same screen,
+      // and sets an expectation nothing in the system has met yet.
+      setActionMessage('Quote accepted. Your booking is pending until payment is arranged — we will be in touch.');
       fetchData(session.user.id);
     } catch {
       setActionMessage('Could not accept the quote. Please try again.');
