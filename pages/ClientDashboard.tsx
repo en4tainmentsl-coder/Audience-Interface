@@ -73,7 +73,7 @@ interface ClientDashboardQuote {
     stage_name: string;
     profile_photo_url?: string;
   };
-  quotes?: ClientDashboardQuoteOffer[];
+  quotes?: ClientDashboardQuoteOffer | null;
 }
 
 // The artist picks an enum; the client reads a sentence. Never show the label.
@@ -124,7 +124,7 @@ export const ClientDashboard: React.FC = () => {
       setBookings(((bookingsData as unknown) as ClientDashboardBooking[]) || []);
 
       // Fetch Quotes
-      const { data: quotesData } = await supabase
+      const { data: quotesData, error: quotesError } = await supabase
         .from('quote_requests')
         .select(`
           id,
@@ -153,6 +153,7 @@ export const ClientDashboard: React.FC = () => {
         .eq('client_user_id', userId)
         .order('created_at', { ascending: false });
       
+      if (quotesError) setActionMessage('Could not load your quote requests. Please refresh.');
       setQuotes(((quotesData as unknown) as ClientDashboardQuote[]) || []);
 
       // Fetch Favorites
@@ -433,63 +434,63 @@ export const ClientDashboard: React.FC = () => {
                         </div>
                       )}
 
-                      {/* The offer itself. quotes_one_per_request means there is at
-                          most one, but PostgREST returns an array for the embed. */}
-                      {quote.quotes?.[0] && quote.quotes[0].quote_status === 'pending' && (
+                      {/* The offer itself. quotes_one_per_request is UNIQUE on quote_request_id, so
+                          PostgREST returns an object here, or null, never an array. */}
+                      {quote.quotes && quote.quotes.quote_status === 'pending' && (
                         <div className="border-t border-white/5 pt-4 space-y-3">
                           <div className="space-y-1 text-sm">
                             <div className="flex justify-between text-gray-400">
-                              <span>Performance fee</span><span>{money(quote.quotes[0].quoted_amount)}</span>
+                              <span>Performance fee</span><span>{money(quote.quotes.quoted_amount)}</span>
                             </div>
-                            {Number(quote.quotes[0].travel_fee ?? 0) > 0 && (
+                            {Number(quote.quotes.travel_fee ?? 0) > 0 && (
                               <div className="flex justify-between text-gray-400">
-                                <span>Travel</span><span>{money(quote.quotes[0].travel_fee)}</span>
+                                <span>Travel</span><span>{money(quote.quotes.travel_fee)}</span>
                               </div>
                             )}
-                            {Number(quote.quotes[0].meals_fee ?? 0) > 0 && (
+                            {Number(quote.quotes.meals_fee ?? 0) > 0 && (
                               <div className="flex justify-between text-gray-400">
-                                <span>Meals</span><span>{money(quote.quotes[0].meals_fee)}</span>
+                                <span>Meals</span><span>{money(quote.quotes.meals_fee)}</span>
                               </div>
                             )}
-                            {Number(quote.quotes[0].accommodation_fee ?? 0) > 0 && (
+                            {Number(quote.quotes.accommodation_fee ?? 0) > 0 && (
                               <div className="flex justify-between text-gray-400">
-                                <span>Accommodation</span><span>{money(quote.quotes[0].accommodation_fee)}</span>
+                                <span>Accommodation</span><span>{money(quote.quotes.accommodation_fee)}</span>
                               </div>
                             )}
-                            {Number(quote.quotes[0].sscl_amount ?? 0) > 0 && (
+                            {Number(quote.quotes.sscl_amount ?? 0) > 0 && (
                               <div className="flex justify-between text-gray-400">
-                                <span>SSCL</span><span>{money(quote.quotes[0].sscl_amount)}</span>
+                                <span>SSCL</span><span>{money(quote.quotes.sscl_amount)}</span>
                               </div>
                             )}
-                            {Number(quote.quotes[0].vat_amount ?? 0) > 0 && (
+                            {Number(quote.quotes.vat_amount ?? 0) > 0 && (
                               <div className="flex justify-between text-gray-400">
-                                <span>VAT</span><span>{money(quote.quotes[0].vat_amount)}</span>
+                                <span>VAT</span><span>{money(quote.quotes.vat_amount)}</span>
                               </div>
                             )}
-                            {Number(quote.quotes[0].gateway_fee_amount ?? 0) > 0 && (
+                            {Number(quote.quotes.gateway_fee_amount ?? 0) > 0 && (
                               <div className="flex justify-between text-gray-400">
-                                <span>Payment processing</span><span>{money(quote.quotes[0].gateway_fee_amount)}</span>
+                                <span>Payment processing</span><span>{money(quote.quotes.gateway_fee_amount)}</span>
                               </div>
                             )}
                             <div className="flex justify-between font-bold text-white pt-2 border-t border-white/5">
-                              <span>Total</span><span>{money(quote.quotes[0].total_client_price)}</span>
+                              <span>Total</span><span>{money(quote.quotes.total_client_price)}</span>
                             </div>
                           </div>
 
-                          {quote.quotes[0].notes_to_client && (
-                            <p className="text-sm text-gray-400 italic">{quote.quotes[0].notes_to_client}</p>
+                          {quote.quotes.notes_to_client && (
+                            <p className="text-sm text-gray-400 italic">{quote.quotes.notes_to_client}</p>
                           )}
 
                           <p className="text-xs text-gray-500">
-                            Valid until {lkDate(quote.quotes[0].expires_at)}. Accepting confirms the booking.
+                            Valid until {lkDate(quote.quotes.expires_at)}. Accepting confirms the booking.
                           </p>
 
                           <Button
-                            onClick={() => handleAcceptQuote(quote.quotes![0].id)}
-                            disabled={accepting === quote.quotes[0].id}
+                            onClick={() => handleAcceptQuote(quote.quotes!.id)}
+                            disabled={accepting === quote.quotes.id}
                             size="sm"
                           >
-                            {accepting === quote.quotes[0].id ? 'Accepting…' : 'Accept quote'}
+                            {accepting === quote.quotes.id ? 'Accepting…' : 'Accept quote'}
                           </Button>
                         </div>
                       )}
