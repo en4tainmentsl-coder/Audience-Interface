@@ -5,6 +5,7 @@ import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { Artist } from '../types';
 import { EVENT_TYPES } from '../constants/eventTypes';
+import { ErrorBanner, CardGridSkeleton, LoadingAnnouncement } from '../components/QueryStates';
 
 export const Artists: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -21,10 +22,16 @@ export const Artists: React.FC = () => {
   // the range boundaries. talent_rates is private (D-046).
   const [rangeByTalent, setRangeByTalent] = useState<Record<string, Record<string, number>>>({});
   const [artists, setArtists] = useState<Artist[]>([]);
+  // Starts true: an empty grid on first paint reads as "no artists on this
+  // marketplace", which is the impression this page can least afford.
+  const [loading, setLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<boolean>(false);
 
   const fetchArtists = async (): Promise<void> => {
+    setLoading(true);
+    setLoadError(false);
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles_talent')
         .select(`
           id,
@@ -49,6 +56,16 @@ export const Artists: React.FC = () => {
         .order('is_featured', { ascending: false })
         .order('feature_sort_order', { ascending: true });
       
+      // supabase-js resolves rather than throws on a query error, so the catch
+      // below never saw these. Dropping `error` made a failed load render as
+      // "No talent found" — indistinguishable from an empty marketplace.
+      if (error) {
+        console.error('Error fetching artists:', error);
+        setArtists([]);
+        setLoadError(true);
+        return;
+      }
+
       if (data && data.length > 0) {
         // Safe casting the returned Supabase types
         const mappedArtists: Artist[] = data.map((talent: any) => {
@@ -86,9 +103,12 @@ export const Artists: React.FC = () => {
       } else {
         setArtists([]);
       }
-    } catch (error) {
-      console.error('Error fetching artists:', error);
+    } catch (err) {
+      console.error('Error fetching artists:', err);
       setArtists([]);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -176,6 +196,11 @@ export const Artists: React.FC = () => {
     () => filteredArtists.filter(a => a.is_featured).map(a => a.id),
     [filteredArtists]
   );
+
+  // Whether the reader has narrowed the roster themselves. Decides between
+  // "nothing matches your filters" and "the roster is empty" — two different
+  // situations that had been sharing one message.
+  const hasActiveFilters: boolean = Boolean(searchTerm || selectedGenre || selectedEventType);
 
   const clearAllFilters = (): void => {
     setSearchTerm('');
@@ -274,7 +299,7 @@ export const Artists: React.FC = () => {
           <span className="text-sm text-gray-500 font-medium text-left">
             Showing <span className="text-white font-bold">{filteredArtists.length}</span> results
           </span>
-          { (searchTerm || selectedGenre || selectedEventType) && (
+          { hasActiveFilters && (
             <button 
               onClick={clearAllFilters}
               className="text-xs font-bold text-brand-pink hover:underline uppercase tracking-widest"
@@ -285,15 +310,37 @@ export const Artists: React.FC = () => {
           )}
         </div>
 
-        {filteredArtists.length > 0 ? (
+        {loading ? (
+          <>
+            <LoadingAnnouncement label="Loading artists" />
+            <CardGridSkeleton count={6} id="artists-loading" />
+          </>
+        ) : loadError ? (
+          <ErrorBanner
+            id="artists-error"
+            message="We couldn't load the roster just now. Check your connection and try again."
+            onRetry={fetchArtists}
+          />
+        ) : filteredArtists.length > 0 ? (
           <FlexArtistCardRow artists={filteredArtists} featuredIds={featuredIds} />
-        ) : (
+        ) : hasActiveFilters ? (
           <div className="py-20 text-center" id="no-artists-found">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-white/5 mb-6 text-gray-600">
               <Search size={40} />
             </div>
             <h3 className="text-2xl font-bold text-white mb-2">No talent found</h3>
             <p className="text-gray-400">Try adjusting your search terms or category filters.</p>
+          </div>
+        ) : (
+          /* No filters applied and still nothing: the roster itself is empty.
+             Telling this reader to adjust filters they never set is advice
+             they cannot act on. */
+          <div className="py-20 text-center" id="no-artists-listed">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-white/5 mb-6 text-gray-600">
+              <Search size={40} />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2">No artists listed yet</h3>
+            <p className="text-gray-400">New talent is being added — do check back soon.</p>
           </div>
         )}
       </div>

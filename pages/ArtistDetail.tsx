@@ -8,6 +8,7 @@ import { User } from '@supabase/supabase-js';
 import type { RawTalentStats } from '../types';
 import { eventTypeLabel } from '../constants/eventTypes';
 import { SignInModal } from '../components/SignInModal';
+import { ErrorBanner, LoadingAnnouncement } from '../components/QueryStates';
 import { cldImage } from '../utils/cloudinary';
 
 interface ArtistDetailData {
@@ -32,6 +33,13 @@ export const ArtistDetail: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [offeredEventTypes, setOfferedEventTypes] = useState<string[]>([]);
+  // Starts true. Previously the only guard was `if (!artist) return "Artist not
+  // found"`, which ran for the whole fetch — so every visitor, including anyone
+  // opening a link shared on WhatsApp, saw "Artist not found" first and the
+  // artist a moment later. loadError is separate from `error` above, which
+  // belongs to the heart action.
+  const [loading, setLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<boolean>(false);
 
   // What this performer takes bookings for. From talent_offered_event_types,
   // which carries no rate. No Range shown here: the profile has no event type
@@ -54,9 +62,11 @@ export const ArtistDetail: React.FC = () => {
 
   const fetchArtistData = async (): Promise<void> => {
     if (!id) return;
+    setLoading(true);
+    setLoadError(false);
     try {
       // Fetch from profiles_talent
-      const { data: talentData } = await supabase
+      const { data: talentData, error: talentError } = await supabase
         .from('profiles_talent')
         .select(`
           id,
@@ -77,7 +87,18 @@ export const ArtistDetail: React.FC = () => {
           tertiary_genre:genres!profiles_talent_tertiary_genre_id_fkey (genre_name)
         `)
         .eq('id', id)
-        .single();
+        .maybeSingle();
+
+      // .single() raises PGRST116 when it matches no row, so a genuinely
+      // missing artist arrived as an error rather than as null. .maybeSingle()
+      // returns null instead, which keeps "no such artist" separate from "the
+      // query failed" — they need different screens.
+      if (talentError) {
+        console.error('Error fetching artist:', talentError);
+        setArtist(null);
+        setLoadError(true);
+        return;
+      }
 
       if (talentData) {
         // Safe mapping
@@ -123,16 +144,23 @@ export const ArtistDetail: React.FC = () => {
             // Check Heart if user is logged in
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (authUser) {
-        const { data: heartData } = await supabase
+        const { data: heartData, error: heartError } = await supabase
           .from('talent_favourites')
           .select('*')
           .eq('user_id', authUser.id)
           .eq('talent_id', id)
           .maybeSingle();
+        // Logged, not surfaced. A failed read here means the heart renders
+        // unset, which is recoverable by tapping it — a banner over the whole
+        // profile would be louder than the problem.
+        if (heartError) console.error('Error reading heart state:', heartError);
         if (heartData) setIsHearted(true);
       }
     } catch (err) {
       console.error('Error fetching artist data:', err);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -191,7 +219,50 @@ export const ArtistDetail: React.FC = () => {
     }
   };
   
-  if (!artist) return <div className="pt-32 text-center text-white" id="artist-not-found">Artist not found</div>;
+  // Order matters: loading, then error, then genuinely-not-found. Collapsing
+  // these into one !artist check is what put "Artist not found" in front of
+  // every visitor for the length of the fetch.
+  if (loading) {
+    return (
+      <div className="pt-32 pb-20 min-h-screen bg-brand-dark" id="artist-detail-loading">
+        <LoadingAnnouncement label="Loading artist profile" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 animate-pulse" aria-hidden="true">
+          <div className="h-[30vh] w-full rounded-2xl bg-brand-surface border border-white/5" />
+          <div className="mt-8 space-y-4">
+            <div className="h-10 w-1/2 bg-white/10 rounded" />
+            <div className="h-4 w-1/4 bg-white/5 rounded" />
+            <div className="h-4 w-full bg-white/5 rounded" />
+            <div className="h-4 w-5/6 bg-white/5 rounded" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="pt-32 pb-20 min-h-screen bg-brand-dark" id="artist-detail-load-error">
+        <div className="max-w-2xl mx-auto px-4">
+          <ErrorBanner
+            message="We couldn't load this artist just now. Check your connection and try again."
+            onRetry={fetchArtistData}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (!artist) {
+    return (
+      <div className="pt-32 pb-20 min-h-screen bg-brand-dark text-center px-4" id="artist-not-found">
+        <h1 className="text-3xl font-bold text-white mb-3">We can't find that artist</h1>
+        <p className="text-gray-400 mb-8">They may have been removed, or the link may be incomplete.</p>
+        <Link to="/artists" className="text-brand-lime font-bold hover:underline">
+          Browse all artists
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="pt-20 min-h-screen bg-brand-dark text-white" id="artist-detail">
