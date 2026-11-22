@@ -12,29 +12,31 @@ interface NavLink {
 
 type UserRole = 'client' | 'venue' | 'talent' | 'admin';
 
-// The talent app is a separate deployment, so a talent signing in here is sent
-// out of this SPA rather than to a route that does not exist in it.
-const TALENT_APP_URL = 'https://app.en4tainment.com';
-
 interface DashboardTarget {
   label: string;
   path: string;
-  external: boolean;
 }
 
-// Roles come from the user_role enum: client, venue, talent, admin. A user with
-// no profiles_users row yet (mid-onboarding) gets the client dashboard, which is
-// where ClientOnboarding leaves them.
-const dashboardFor = (role: UserRole | null): DashboardTarget => {
+// Roles come from the user_role enum: client, venue, talent, admin.
+//
+// talent and admin deliberately get NO link. A talent works in the separate
+// app at app.en4tainment.com, not here. /admin exists in this app but cannot
+// work: there is no admin SELECT policy on quote_requests, so the page returns
+// an empty table to the very role it was built for, and quote triage has since
+// moved to the Directus panel. Sending anyone there would be sending them to a
+// dead end.
+//
+// A user with no profiles_users row yet is mid-onboarding and gets the client
+// dashboard, which is where ClientOnboarding leaves them.
+const dashboardFor = (role: UserRole | null): DashboardTarget | null => {
   switch (role) {
     case 'venue':
-      return { label: 'My Venue', path: '/venue-dashboard', external: false };
+      return { label: 'My Venue', path: '/venue-dashboard' };
     case 'talent':
-      return { label: 'My Artist Profile', path: TALENT_APP_URL, external: true };
     case 'admin':
-      return { label: 'Admin', path: '/admin', external: false };
+      return null;
     default:
-      return { label: 'My Requests', path: '/client-dashboard', external: false };
+      return { label: 'My Requests', path: '/client-dashboard' };
   }
 };
 
@@ -219,17 +221,7 @@ export const Navbar: React.FC = () => {
                         <p className="text-sm text-white truncate" title={email}>{email}</p>
                       </div>
 
-                      {dashboard.external ? (
-                        <a
-                          href={dashboard.path}
-                          role="menuitem"
-                          className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
-                          id="nav-account-dashboard"
-                        >
-                          <LayoutDashboard size={16} />
-                          {dashboard.label}
-                        </a>
-                      ) : (
+                      {dashboard && (
                         <Link
                           to={dashboard.path}
                           role="menuitem"
@@ -308,17 +300,7 @@ export const Navbar: React.FC = () => {
                 <p className="px-3 pt-1 pb-2 text-xs text-gray-400 truncate" title={email}>
                   Signed in as {email}
                 </p>
-                {dashboard.external ? (
-                  <a
-                    href={dashboard.path}
-                    onClick={() => setIsOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-white/5"
-                    id="mobile-account-dashboard"
-                  >
-                    <LayoutDashboard size={18} />
-                    {dashboard.label}
-                  </a>
-                ) : (
+                {dashboard && (
                   <Link
                     to={dashboard.path}
                     onClick={() => setIsOpen(false)}
