@@ -119,7 +119,9 @@ export const ArtistCard: React.FC<ArtistCardProps> = ({ artist }) => {
 
       <button 
         onClick={handleHeart}
-        className={`absolute top-4 right-4 z-20 p-2 rounded-full backdrop-blur-md transition-all ${
+        aria-pressed={isHearted}
+        aria-label={isHearted ? `Remove ${artist.name} from favourites` : `Add ${artist.name} to favourites`}
+        className={`absolute top-4 right-4 z-20 p-3 rounded-full backdrop-blur-md transition-all ${
           isHearted ? 'bg-brand-pink text-white' : 'bg-black/40 text-white hover:bg-brand-pink/50'
         }`}
         id={`heart-button-${artist.id}`}

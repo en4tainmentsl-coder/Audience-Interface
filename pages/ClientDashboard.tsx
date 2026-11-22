@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { supabase } from '../services/supabase';
+import { formatMoney } from '../utils/money';
 import { TalentRating } from '../components/TalentRating';
 import type { RawTalentStats } from '../types';
 import { cldImage } from '../utils/cloudinary';
@@ -227,8 +228,6 @@ export const ClientDashboard: React.FC = () => {
   // PostgREST serialises numeric as a STRING ("57360.62"), so every money
   // value must go through Number() before formatting. This is the same trap
   // that made FlexArtistCard crash on .toFixed(1).
-  const money = (v: string | null): string =>
-    v == null ? '—' : `LKR ${Number(v).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
       const body = await res.json();
 
@@ -252,8 +251,6 @@ export const ClientDashboard: React.FC = () => {
   // PostgREST serialises numeric as a STRING ("57360.62"), so every money
   // value must go through Number() before formatting. This is the same trap
   // that made FlexArtistCard crash on .toFixed(1).
-  const money = (v: string | null): string =>
-    v == null ? '—' : `LKR ${Number(v).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   useEffect(() => {
     const checkAuth = async (): Promise<void> => {
@@ -480,31 +477,31 @@ export const ClientDashboard: React.FC = () => {
                         <div className="border-t border-white/5 pt-4 space-y-3">
                           <div className="space-y-1 text-sm">
                             <div className="flex justify-between text-gray-400">
-                              <span>Performance fee*</span><span>{money(engagementAmount(quote.quotes))}</span>
+                              <span>Performance fee*</span><span>{formatMoney(engagementAmount(quote.quotes))}</span>
                             </div>
                             {Number(quote.quotes.sscl_amount ?? 0) > 0 && (
                               <div className="flex justify-between text-gray-400">
-                                <span>SSCL</span><span>{money(quote.quotes.sscl_amount)}</span>
+                                <span>SSCL</span><span>{formatMoney(quote.quotes.sscl_amount)}</span>
                               </div>
                             )}
                             {Number(quote.quotes.vat_amount ?? 0) > 0 && (
                               <div className="flex justify-between text-gray-400">
-                                <span>VAT</span><span>{money(quote.quotes.vat_amount)}</span>
+                                <span>VAT</span><span>{formatMoney(quote.quotes.vat_amount)}</span>
                               </div>
                             )}
                             {Number(quote.quotes.gateway_fee_amount ?? 0) > 0 && (
                               <div className="flex justify-between text-gray-400">
-                                <span>Payment processing</span><span>{money(quote.quotes.gateway_fee_amount)}</span>
+                                <span>Payment processing</span><span>{formatMoney(quote.quotes.gateway_fee_amount)}</span>
                               </div>
                             )}
                             <div className="flex justify-between font-bold text-white pt-2 border-t border-white/5">
-                              <span>Total</span><span>{money(quote.quotes.total_client_price)}</span>
+                              <span>Total</span><span>{formatMoney(quote.quotes.total_client_price)}</span>
                             </div>
                             <p className="pt-2 text-xs text-gray-500">
                               * Covers the performers, their instruments and equipment,
                               travel, meals and accommodation.
                               {Number(quote.quotes.travel_fee ?? 0) > 0 &&
-                                ` Includes ${money(quote.quotes.travel_fee)} for travel.`}
+                                ` Includes ${formatMoney(quote.quotes.travel_fee)} for travel.`}
                             </p>
                           </div>
 

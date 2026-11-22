@@ -6,6 +6,7 @@ import {
   CreditCard, X, Send, Users, TrendingUp, Zap 
 } from 'lucide-react';
 import { supabase } from '../services/supabase';
+import { formatMoney } from '../utils/money';
 import { Button } from '../components/Button';
 import type { Database } from '../database.types';
 import { TalentRating } from '../components/TalentRating';
@@ -578,7 +579,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                 <div className="absolute top-full right-0 mt-4 w-80 bg-brand-surface border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 text-left">
                   <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/5">
                     <h4 className="text-xs font-black uppercase tracking-widest text-white">Notifications</h4>
-                    <button onClick={() => setShowNotifications(false)}><X size={16} /></button>
+                    <button onClick={() => setShowNotifications(false)} aria-label="Close notifications"><X size={16} /></button>
                   </div>
                   <div className="max-h-96 overflow-y-auto">
                     {notifications.length === 0 ? (
@@ -804,7 +805,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                                     <div className="grid grid-cols-3 gap-4 mb-3">
                                       <div>
                                         <p className="text-[8px] uppercase font-black text-gray-500">Quote</p>
-                                        <p className="text-xs font-bold text-white">{quote.quoted_amount}</p>
+                                        <p className="text-xs font-bold text-white">{formatMoney(quote.quoted_amount)}</p>
                                       </div>
                                       <div>
                                         <p className="text-[8px] uppercase font-black text-gray-500">Travel</p>
@@ -817,7 +818,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                                   <div className="flex flex-col items-end justify-between gap-4">
                                     <div className="text-right">
                                       <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Total Price</p>
-                                      <p className="text-xl font-black text-brand-lime">{quote.total_client_price}</p>
+                                      <p className="text-xl font-black text-brand-lime">{formatMoney(quote.total_client_price)}</p>
                                     </div>
                                     <div className="flex gap-2">
                                       <StatusBadge status={quote.quote_status} />
@@ -918,7 +919,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                               <StatusBadge status={booking.booking_status} />
                               <div className="text-right">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Gross Amount</p>
-                                <p className="text-lg font-black text-white">{booking.client_total_amount} {booking.currency}</p>
+                                <p className="text-lg font-black text-white">{formatMoney(booking.client_total_amount, booking.currency)}</p>
                               </div>
                             </div>
                             <div className="flex flex-wrap justify-end gap-2">
@@ -1030,7 +1031,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                               </div>
                             </td>
                             <td className="p-4 text-sm text-gray-400">Corporate Event</td>
-                            <td className="p-4 text-sm font-black text-brand-lime">{b.client_total_amount} {b.currency}</td>
+                            <td className="p-4 text-sm font-black text-brand-lime">{formatMoney(b.client_total_amount, b.currency)}</td>
                             <td className="p-4">
                               <button className="text-[10px] font-black uppercase tracking-widest text-brand-purple hover:text-brand-pink transition-colors">View Details</button>
                             </td>
@@ -1085,7 +1086,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                   </p>
                 </div>
               </div>
-              <button onClick={() => setActiveMessageBooking(null)} className="p-2 text-gray-400 hover:text-white"><X size={24} /></button>
+              <button onClick={() => setActiveMessageBooking(null)} aria-label="Close messages" className="p-2 text-gray-400 hover:text-white"><X size={24} /></button>
             </div>
 
             <div className="flex-grow overflow-y-auto p-6 space-y-6">
@@ -1121,11 +1122,13 @@ if (data) venueProfile = data as unknown as VenueProfile;
                   value={messageContent}
                   onChange={(e) => setMessageContent(e.target.value)}
                   placeholder="Type your message..."
+                  aria-label="Message"
                   className="w-full bg-brand-dark border border-white/10 rounded-full py-4 pl-6 pr-14 text-sm text-white focus:outline-none focus:border-brand-purple transition-colors"
                 />
                 <button 
                   type="submit"
-                  className="absolute right-2 top-2 w-10 h-10 bg-brand-purple text-white rounded-full flex items-center justify-center hover:bg-brand-pink transition-colors"
+                  aria-label="Send message"
+                  className="absolute right-2 top-2 w-11 h-11 bg-brand-purple text-white rounded-full flex items-center justify-center hover:bg-brand-pink transition-colors"
                 >
                   <Send size={18} />
                 </button>
@@ -1150,7 +1153,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
           <div className="relative bg-brand-surface w-full max-w-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden text-center">
              <div className="p-6 border-b border-white/5 flex justify-between items-center text-left">
                 <h3 className="text-xl font-black text-white uppercase tracking-tighter">Post New Event Request</h3>
-                <button onClick={() => setShowBookingForm(false)}><X size={24} /></button>
+                <button onClick={() => setShowBookingForm(false)} aria-label="Close booking form"><X size={24} /></button>
              </div>
              <div className="p-8 space-y-6">
                 <div className="w-20 h-20 bg-brand-purple/20 rounded-full flex items-center justify-center mx-auto">
