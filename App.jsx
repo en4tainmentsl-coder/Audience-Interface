@@ -19,7 +19,6 @@ import { ArtistDetail } from './pages/ArtistDetail';
 const About           = lazy(() => import('./pages/About').then(m => ({ default: m.About })));
 const Contact         = lazy(() => import('./pages/Contact').then(m => ({ default: m.Contact })));
 const RequestQuote    = lazy(() => import('./pages/RequestQuote').then(m => ({ default: m.RequestQuote })));
-const Admin           = lazy(() => import('./pages/Admin').then(m => ({ default: m.Admin })));
 const VenuePortal     = lazy(() => import('./pages/VenuePortal').then(m => ({ default: m.VenuePortal })));
 const VenueDashboard  = lazy(() => import('./pages/VenueDashboard').then(m => ({ default: m.VenueDashboard })));
 const TalentDashboard = lazy(() => import('./pages/TalentDashboard').then(m => ({ default: m.TalentDashboard })));
@@ -64,7 +63,6 @@ const App = () => {
               <Route path="/artists/:id" element={<ArtistDetail />} />
               <Route path="/request-quote" element={<RequestQuote />} />
               <Route path="/contact" element={<Contact />} />
-              <Route path="/admin" element={<Admin />} />
               <Route path="/venue-portal" element={<VenuePortal />} />
               <Route path="/venue-dashboard" element={<VenueDashboard />} />
               <Route path="/talent-dashboard" element={<TalentDashboard />} />
