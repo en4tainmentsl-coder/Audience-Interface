@@ -104,7 +104,7 @@ export const ArtistCard: React.FC<ArtistCardProps> = ({ artist }) => {
             <h3 className="text-xl font-bold text-white group-hover:text-brand-lime transition-colors">
               {artist.name}
             </h3>
-            <TalentRating stats={artist.stats} size={16} />
+            <TalentRating stats={artist.stats} size={16} hideWhenUnrated />
           </div>
           
           <p className="text-gray-400 text-sm mb-6 line-clamp-2">
