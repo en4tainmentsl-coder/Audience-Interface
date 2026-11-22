@@ -283,7 +283,9 @@ export const ArtistDetail: React.FC = () => {
             </span>
             <button 
               onClick={handleHeart}
-              className={`p-2 rounded-full backdrop-blur-md transition-all ${
+              aria-pressed={isHearted}
+              aria-label={isHearted ? `Remove ${artist.name} from favourites` : `Add ${artist.name} to favourites`}
+              className={`p-3 rounded-full backdrop-blur-md transition-all ${
                 isHearted ? 'bg-brand-pink text-white' : 'bg-white/10 text-white hover:bg-brand-pink/50'
               }`}
               id="like-artist-btn"
