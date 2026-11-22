@@ -144,7 +144,7 @@ export const FlexArtistCard: React.FC<FlexArtistCardProps> = ({ artist, featured
               {artist.name}
             </h3>
             <div className="flex items-center gap-1 text-brand-lime shrink-0 pt-1">
-              <TalentRating stats={artist.stats} size={12} className="text-xs font-black" />
+              <TalentRating stats={artist.stats} size={12} className="text-xs font-black" hideWhenUnrated />
             </div>
           </div>
 
