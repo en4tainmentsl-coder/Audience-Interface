@@ -6,13 +6,21 @@ import { FlexArtistCardRow } from '../components/FlexArtistCard';
 import { Sparkles, Star } from 'lucide-react';
 import { supabase } from '../services/supabase';
 import { Artist } from '../types';
+import { ErrorBanner, CardGridSkeleton, LoadingAnnouncement } from '../components/QueryStates';
 
 export const Home: React.FC = () => {
   const [featuredArtists, setFeaturedArtists] = useState<Artist[]>([]);
+  // Starts true: the first paint of this page is a load in progress, not an
+  // empty roster. Rendering the empty grid first is what made a slow 4G
+  // connection look like a marketplace with no artists on it.
+  const [loading, setLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<boolean>(false);
 
   const fetchFeaturedArtists = async (): Promise<void> => {
+    setLoading(true);
+    setLoadError(false);
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles_talent')
         .select(`
           id,
@@ -38,6 +46,15 @@ export const Home: React.FC = () => {
         .order('feature_sort_order', { ascending: true })
         .limit(3);
       
+      // supabase-js resolves rather than throws on a query error, so the
+      // catch below never saw these. Dropping `error` turned every failure
+      // into an empty grid, which looks like correct behaviour.
+      if (error) {
+        console.error('Error fetching featured artists:', error);
+        setLoadError(true);
+        return;
+      }
+
       if (data && data.length > 0) {
         const mappedArtists: Artist[] = data.map((talent: any) => {
           const rawMedia = talent.talent_media;
@@ -64,8 +81,11 @@ export const Home: React.FC = () => {
         });
         setFeaturedArtists(mappedArtists);
       }
-    } catch (error) {
-      console.error('Error fetching featured artists:', error);
+    } catch (err) {
+      console.error('Error fetching featured artists:', err);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -148,7 +168,24 @@ export const Home: React.FC = () => {
             </Link>
           </div>
           
-          <FlexArtistCardRow artists={featuredArtists} featuredIds={featuredIds} />
+          {loading ? (
+            <>
+              <LoadingAnnouncement label="Loading featured artists" />
+              <CardGridSkeleton count={3} id="rising-stars-loading" />
+            </>
+          ) : loadError ? (
+            <ErrorBanner
+              id="rising-stars-error"
+              message="We couldn't load our featured artists just now. Check your connection and try again."
+              onRetry={fetchFeaturedArtists}
+            />
+          ) : featuredArtists.length === 0 ? (
+            <p className="text-gray-400" id="rising-stars-empty">
+              No featured artists just yet — <Link to="/artists" className="text-brand-lime hover:underline">browse the full roster</Link>.
+            </p>
+          ) : (
+            <FlexArtistCardRow artists={featuredArtists} featuredIds={featuredIds} />
+          )}
         </div>
       </section>
 
