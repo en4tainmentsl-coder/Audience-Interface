@@ -48,12 +48,25 @@ select u.id, 'Seeded 2026-11-24 with the 2-of-3 decision'
   from public.profiles_users u
  where u.email in ('praveen.edema@gmail.com', 'asheys@gmail.com', 'ranilpt@gmail.com');
 
+-- The assertion matters on a database that has users: it stops the migration
+-- seeding two reviewers because an address was mistyped. On a rebuilt-from-
+-- baseline database (CI, drift check) there are no users at all and nothing to
+-- seed, so skip it rather than fail a build that is working correctly.
 do $$
-declare n integer;
+declare
+  n_users integer;
+  n_reviewers integer;
 begin
-  select count(*) into n from public.reviewers;
-  if n <> 3 then
-    raise exception 'Expected 3 seeded reviewers, got % — check the email addresses.', n;
+  select count(*) into n_users from public.profiles_users;
+  if n_users = 0 then
+    raise notice 'No users present — fresh database, skipping the reviewer seed assertion.';
+    return;
+  end if;
+
+  select count(*) into n_reviewers from public.reviewers;
+  if n_reviewers <> 3 then
+    raise exception
+      'Expected 3 seeded reviewers, got % — check the email addresses.', n_reviewers;
   end if;
 end $$;
 
