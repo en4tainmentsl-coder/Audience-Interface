@@ -70,11 +70,12 @@ Verified-wrong assumptions live in [`corrections.md`](./corrections.md).
 | D-051 | The fee is the category rate; duration prices nothing | Settled, implemented — amendment 2026-11-02 not built |
 | D-052 | Controlled-disclosure views for browsing without rates | Settled, implemented |
 | D-053 | Favourite notes are written once, not edited | Settled, implemented |
-| D-054 | Two approvals or nothing; no single-approver override | Settled — **unbuilt** |
+| D-054 | Two approvals or nothing; no single-approver override | Settled, implemented 2026-11-24 — denominator amended by D-059 |
 | D-055 | Each side's documents disclose only that side's commission leg | Settled — **not yet written into the documents** |
 | D-056 | Clients must be 18 or over | Settled, implemented |
 | D-057 | A favourite belongs to the signed-in account, not to a profile | Settled, implemented |
 | D-058 | How a talent answers a quote request: send a fixed-fee quote, or decline | Settled, implemented |
+| D-059 | Two of three named reviewers; signatures scoped to a review cycle | Settled, implemented |
 
 ---
 
@@ -1766,6 +1767,88 @@ enforced:**
 - **A note to the client on a quote is capped at 1,000 characters.**
 - **A talent cannot decline after quoting.** There is still no way to
   withdraw a sent quote.
+
+---
+
+## D-059 — Two of three named reviewers; signatures scoped to a review cycle
+
+**Date:** 2026-11-24
+**Status:** Settled, implemented
+**Decided by:** Praveen
+**Source:** Todoist `6hh2W36XVVMHXhFX`, `6hx2hH6fHCVQ64MX`
+
+**Decision.** A talent profile goes live only when **two distinct named
+reviewers** have each recorded an approval against the profile's **current
+review cycle**. The three named reviewers are **Praveen, Ashey and Ranil**.
+Erich leaves the review path. Migration
+`20261124001500_two_of_three_talent_approval`.
+
+**What changed from D-054.** The threshold is unchanged — two approvals, no
+single-approver override, no time-based escalation. Only the pool moved, from
+four people to three.
+
+**Reviewers are a named allowlist, not `role = 'admin'`.** `public.reviewers`
+holds the three, with `granted_at`, `granted_by` and `revoked_at`. Five
+Supabase rows carry `role = 'admin'`, including the shared `admin.001@`
+account and people with no reviewing function — two signatures drawn from
+that set would not prove two people. Writes to the table are service-role
+only, so nobody can appoint themselves.
+
+**Signatures are scoped to a review cycle.** `profiles_talent.review_cycle`
+increments whenever the profile re-enters `pending_approval`, and the count
+only sees signatures from the current cycle. A profile edited after approval
+therefore needs two fresh signatures, while the old ones remain as history.
+Chosen over deleting prior approvals, which destroys the audit trail the
+table exists for, and over letting signatures persist, which would let a
+talent be approved and then edit to content nobody vetted.
+
+**The threshold is a constant in the function, not configuration.** Chosen
+over a settings table. Changing how many people must sign off on identity
+documents should cost a migration and a code review. An editable threshold
+can be lowered to one by anyone with admin access, which is the same hole the
+allowlist closes.
+
+**One rejection rejects.** Two approvals are needed to go live, but a single
+reviewer's rejection is final for that cycle. The talent corrects and
+resubmits into a fresh one. Rejections are recorded in the same table as
+approvals.
+
+**Enforcement is a trigger, not the UI.** `zy_enforce_approval_threshold` on
+`profiles_talent` refuses any transition to `approved` without two distinct
+signatures in the current cycle, whatever the write path — the app, Directus,
+`service_role`, or the shared admin account. `en4.admin_override` is the
+bypass, matching the sibling guards.
+
+**Attribution runs on Supabase identity, not Directus.**
+`talent_identity.verified_by` has an FK to `profiles_users.id`, and the KYC
+panel signs each reviewer into Supabase separately because `r2-deliver` will
+not issue a presigned URL without it. `review-talent` records that identity,
+which cannot be passed in. Proven in production on 2026-11-24: a signature
+recorded against `praveen.edema@gmail.com` while the Directus session was
+`admin@en4tainment.com`. The consequence worth knowing is that the Directus
+seat cap limits who can open the panel, but not who can be attributed.
+
+**An accepted consequence.** While a profile sits at `pending_approval` the
+public read policy hides it entirely, because `talent_select_public` requires
+`approval_status = 'approved'`. Under 2-of-3 that outage lasts until two
+reviewers sign again. This contradicts the second half of D-030 — that the
+last approved version stays live while an edit is reviewed — which has never
+been built. Open: Todoist `6j4f84JmQ4xRc9x5`.
+
+**Claude's reading, not put to Praveen as questions — check these:**
+
+- **The 30-minute both-sides NIC check now applies per signature,** so each
+  signer must have opened the documents themselves. That was implicit in
+  D-054 but never stated.
+- **A reviewer cannot change their mind within a cycle.**
+  `talent_approvals` is unique on `(talent_id, approver_id, review_cycle)` and
+  append-only, so revising a decision means a new cycle.
+- **`verified_by` and `verified_at` are written by the call that completes
+  the threshold,** and so record the second signer rather than the first.
+  Before this they were never written at all.
+- **Erich retains Supabase `role = 'admin'`** — and with it delete rights over
+  every KYC document — despite leaving the review path. The allowlist stops
+  him signing; it does not touch that grant.
 
 ---
 # Open Decisions
