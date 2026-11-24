@@ -98,6 +98,8 @@ begin
 end;
 $$;
 
+revoke all on function public.bump_review_cycle() from public, anon, authenticated;
+
 -- NAME MATTERS: this must sort AFTER z_directus_column_scope, which rejects any
 -- column a Directus write changes that is not in its allowed list. Running later
 -- means the scope check never sees review_cycle move, so review_cycle does not
@@ -161,6 +163,8 @@ begin
           hint = 'Record a new decision in a new review cycle instead.';
 end;
 $$;
+
+revoke all on function public.talent_approvals_no_mutate() from public, anon, authenticated;
 
 create trigger talent_approvals_no_mutate
   before update or delete on public.talent_approvals
