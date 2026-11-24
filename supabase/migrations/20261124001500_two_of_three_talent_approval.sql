@@ -427,8 +427,8 @@ create or replace function public.review_talent(
   p_talent_id uuid,
   p_reviewer  uuid,
   p_decision  text,
-  p_reason    public.talent_rejection_reason,
-  p_note      text
+  p_reason    public.talent_rejection_reason default null,
+  p_note      text default null
 )
 returns table (stage_name text, account_email text, contact_email text)
 language sql
