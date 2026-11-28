@@ -170,7 +170,7 @@ export const TownAutocomplete: React.FC<Props> = ({ value, townId, onChange, inv
         }}
         onBlur={() => setOpen(false)}
         onKeyDown={onKeyDown}
-        className={`w-full bg-brand-dark/50 border rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all ${
+        className={`w-full bg-brand-dark/50 border rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-hidden transition-all ${
           invalid ? 'border-red-500' : 'border-white/10'
         }`}
       />

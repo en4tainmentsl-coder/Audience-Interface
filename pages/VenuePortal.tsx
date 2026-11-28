@@ -249,7 +249,7 @@ export const VenuePortal: React.FC = () => {
                       <input
                         type="email"
                         required
-                        className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 pl-10 pr-4 focus:outline-none focus:border-brand-purple"
+                        className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 pl-10 pr-4 focus:outline-hidden focus:border-brand-purple"
                         value={loginData.email}
                         onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                       />
@@ -262,7 +262,7 @@ export const VenuePortal: React.FC = () => {
                       <input
                         type="password"
                         required
-                        className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 pl-10 pr-4 focus:outline-none focus:border-brand-purple"
+                        className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 pl-10 pr-4 focus:outline-hidden focus:border-brand-purple"
                         value={loginData.password}
                         onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
                       />
@@ -308,7 +308,7 @@ export const VenuePortal: React.FC = () => {
                         <input
                           type="text"
                           required
-                          className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 px-4 focus:outline-none focus:border-brand-purple"
+                          className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 px-4 focus:outline-hidden focus:border-brand-purple"
                           value={signupData.name}
                           onChange={(e) => setSignupData({ ...signupData, name: e.target.value })}
                         />
@@ -321,7 +321,7 @@ export const VenuePortal: React.FC = () => {
                         <input
                           type="text"
                           required
-                          className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 px-4 focus:outline-none focus:border-brand-purple"
+                          className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 px-4 focus:outline-hidden focus:border-brand-purple"
                           value={signupData.registeredName}
                           onChange={(e) => setSignupData({ ...signupData, registeredName: e.target.value })}
                         />
@@ -334,7 +334,7 @@ export const VenuePortal: React.FC = () => {
                         <input
                           type="text"
                           required
-                          className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 px-4 focus:outline-none focus:border-brand-purple"
+                          className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 px-4 focus:outline-hidden focus:border-brand-purple"
                           value={signupData.brNumber}
                           onChange={(e) => setSignupData({ ...signupData, brNumber: e.target.value })}
                         />
@@ -377,7 +377,7 @@ export const VenuePortal: React.FC = () => {
                         </label>
                         <textarea
                           required
-                          className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 px-4 focus:outline-none focus:border-brand-purple h-20"
+                          className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 px-4 focus:outline-hidden focus:border-brand-purple h-20"
                           value={signupData.registeredAddress}
                           onChange={(e) => setSignupData({ ...signupData, registeredAddress: e.target.value })}
                         />
@@ -389,7 +389,7 @@ export const VenuePortal: React.FC = () => {
                         </label>
                         <textarea
                           required
-                          className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 px-4 focus:outline-none focus:border-brand-purple h-20"
+                          className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 px-4 focus:outline-hidden focus:border-brand-purple h-20"
                           value={signupData.locationAddress}
                           onChange={(e) => setSignupData({ ...signupData, locationAddress: e.target.value })}
                         />
@@ -403,7 +403,7 @@ export const VenuePortal: React.FC = () => {
                           <input
                             type="tel"
                             required
-                            className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 px-4 focus:outline-none focus:border-brand-purple"
+                            className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 px-4 focus:outline-hidden focus:border-brand-purple"
                             value={signupData.registeredPhone}
                             onChange={(e) => setSignupData({ ...signupData, registeredPhone: e.target.value })}
                           />
@@ -416,7 +416,7 @@ export const VenuePortal: React.FC = () => {
                           <input
                             type="tel"
                             required
-                            className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 px-4 focus:outline-none focus:border-brand-purple"
+                            className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 px-4 focus:outline-hidden focus:border-brand-purple"
                             value={signupData.mobileNumber}
                             onChange={(e) => setSignupData({ ...signupData, mobileNumber: e.target.value })}
                           />
@@ -445,7 +445,7 @@ export const VenuePortal: React.FC = () => {
                           <input
                             type="email"
                             required
-                            className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 px-4 focus:outline-none focus:border-brand-purple"
+                            className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 px-4 focus:outline-hidden focus:border-brand-purple"
                             value={signupData.email}
                             onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
                           />
@@ -455,7 +455,7 @@ export const VenuePortal: React.FC = () => {
                           <input
                             type="password"
                             required
-                            className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 px-4 focus:outline-none focus:border-brand-purple"
+                            className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 px-4 focus:outline-hidden focus:border-brand-purple"
                             value={signupData.password}
                             onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
                           />
@@ -465,7 +465,7 @@ export const VenuePortal: React.FC = () => {
                           <input
                             type="password"
                             required
-                            className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 px-4 focus:outline-none focus:border-brand-purple"
+                            className="w-full bg-brand-dark border border-white/10 rounded-lg py-2 px-4 focus:outline-hidden focus:border-brand-purple"
                             value={signupData.confirmPassword}
                             onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
                           />

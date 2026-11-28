@@ -343,7 +343,7 @@ export const ClientDashboard: React.FC = () => {
                         alt={fav.profiles_talent?.stage_name}
                         className="w-12 h-12 rounded-lg object-cover border border-white/10 animate-fade-in"
                       />
-                      <div className="flex-grow">
+                      <div className="grow">
                         <h4 className="font-semibold group-hover:text-brand-purple transition-colors">{fav.profiles_talent?.stage_name}</h4>
                         <TalentRating stats={fav.profiles_talent?.talent_stats} size={12} className="text-brand-lime text-xs" />
                       </div>

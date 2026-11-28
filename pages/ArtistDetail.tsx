@@ -229,10 +229,10 @@ export const ArtistDetail: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 animate-pulse" aria-hidden="true">
           <div className="h-[30vh] w-full rounded-2xl bg-brand-surface border border-white/5" />
           <div className="mt-8 space-y-4">
-            <div className="h-10 w-1/2 bg-white/10 rounded" />
-            <div className="h-4 w-1/4 bg-white/5 rounded" />
-            <div className="h-4 w-full bg-white/5 rounded" />
-            <div className="h-4 w-5/6 bg-white/5 rounded" />
+            <div className="h-10 w-1/2 bg-white/10 rounded-sm" />
+            <div className="h-4 w-1/4 bg-white/5 rounded-sm" />
+            <div className="h-4 w-full bg-white/5 rounded-sm" />
+            <div className="h-4 w-5/6 bg-white/5 rounded-sm" />
           </div>
         </div>
       </div>
@@ -275,10 +275,10 @@ export const ArtistDetail: React.FC = () => {
           decoding="async"
           className="w-full h-full object-cover object-top opacity-60"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-brand-dark via-brand-dark/50 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-brand-dark via-brand-dark/50 to-transparent" />
         <div className="absolute bottom-0 left-0 w-full p-8 md:p-12 max-w-7xl mx-auto">
           <div className="flex items-center gap-4 mb-4">
-            <span className="bg-brand-lime text-brand-dark font-bold px-3 py-1 rounded">
+            <span className="bg-brand-lime text-brand-dark font-bold px-3 py-1 rounded-sm">
               {artist.category}
             </span>
             <button 
@@ -377,7 +377,7 @@ export const ArtistDetail: React.FC = () => {
         </div>
 
         <div className="lg:col-span-1 space-y-8 text-left">
-          <div className="bg-gradient-to-br from-brand-indigo to-brand-purple p-6 rounded-xl shadow-xl">
+          <div className="bg-linear-to-br from-brand-indigo to-brand-purple p-6 rounded-xl shadow-xl">
              <h3 className="text-xl font-bold mb-2">Want to book {artist.name}?</h3>
              <p className="text-white/80 text-sm mb-6">Dates fill up fast. Secure your spot today.</p>
              <Link to={`/request-quote?artistId=${artist.id}`} className="block">

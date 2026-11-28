@@ -71,7 +71,7 @@ export const Contact: React.FC = () => {
     }
   };
 
-  const inputClass = "w-full bg-brand-dark border border-white/10 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none disabled:opacity-60";
+  const inputClass = "w-full bg-brand-dark border border-white/10 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-hidden disabled:opacity-60";
 
   return (
     <div className="pt-24 pb-20 min-h-screen bg-brand-dark" id="contact-page">

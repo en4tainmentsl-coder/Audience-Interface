@@ -390,7 +390,7 @@ export const RequestQuote: React.FC = () => {
     <div className="pt-32 pb-20 min-h-screen bg-brand-dark flex items-center justify-center px-4" id="request-quote-page">
       <div className="max-w-5xl w-full bg-brand-surface border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col lg:flex-row">
 
-        <div className="lg:w-2/5 bg-gradient-to-br from-brand-purple via-brand-pink to-brand-indigo p-12 text-white flex flex-col justify-between relative overflow-hidden text-left animate-fade-in">
+        <div className="lg:w-2/5 bg-linear-to-br from-brand-purple via-brand-pink to-brand-indigo p-12 text-white flex flex-col justify-between relative overflow-hidden text-left animate-fade-in">
           <div className="relative z-10">
             <Music className="w-16 h-16 mb-10 text-brand-lime animate-pulse" />
             <h2 className="text-5xl font-black mb-6 uppercase tracking-tighter italic">Book the Future.</h2>
@@ -472,7 +472,7 @@ export const RequestQuote: React.FC = () => {
                   onChange={handleChange}
                   required={userRole === 'venue'}
                   disabled={venueOptions.length === 0 || userRole === 'venue'}
-                  className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all appearance-none cursor-pointer disabled:opacity-50"
+                  className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-hidden transition-all appearance-none cursor-pointer disabled:opacity-50"
                 >
                   {userRole !== 'venue' && (
                     <option value="">
@@ -498,7 +498,7 @@ export const RequestQuote: React.FC = () => {
                     value={formData.eventAddress}
                     onChange={handleChange}
                     placeholder="Street address the performer should come to"
-                    className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all"
+                    className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-hidden transition-all"
                   />
                   <p className="text-xs text-white/50">
                     Coordinates decide the travel fee; this is how the performer finds the door.
@@ -516,7 +516,7 @@ export const RequestQuote: React.FC = () => {
                 value={formData.location}
                 onChange={handleChange}
                 placeholder="Hotel name, hall, or address"
-                className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all placeholder:text-gray-600"
+                className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-hidden transition-all placeholder:text-gray-600"
               />
             </div>
 
@@ -529,7 +529,7 @@ export const RequestQuote: React.FC = () => {
                   required
                   value={formData.date}
                   onChange={handleChange}
-                  className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all"
+                  className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-hidden transition-all"
                 />
               </div>
               <div className="space-y-2">
@@ -540,7 +540,7 @@ export const RequestQuote: React.FC = () => {
                   required
                   value={formData.startTime}
                   onChange={handleChange}
-                  className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all"
+                  className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-hidden transition-all"
                 />
               </div>
               <div className="space-y-2">
@@ -551,7 +551,7 @@ export const RequestQuote: React.FC = () => {
                   required
                   value={formData.endTime}
                   onChange={handleChange}
-                  className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all"
+                  className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-hidden transition-all"
                 />
               </div>
             </div>
@@ -576,7 +576,7 @@ export const RequestQuote: React.FC = () => {
                 required
                 value={formData.eventType}
                 onChange={handleChange}
-                className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all appearance-none cursor-pointer"
+                className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-hidden transition-all appearance-none cursor-pointer"
               >
                 <option value="">Select an event type...</option>
                 {EVENT_TYPES.map((et) => (
@@ -598,7 +598,7 @@ export const RequestQuote: React.FC = () => {
                 required
                 value={formData.audienceCapacity}
                 onChange={handleChange}
-                className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all appearance-none cursor-pointer"
+                className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-hidden transition-all appearance-none cursor-pointer"
               >
                 <option value="">Roughly how many people?</option>
                 {AUDIENCE_CAPACITY_BANDS.map((b) => (
@@ -616,7 +616,7 @@ export const RequestQuote: React.FC = () => {
                   value={formData.talentId}
                   onChange={handleChange}
                   disabled={talentLoading || !formData.eventType || selectableTalent.length === 0}
-                  className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none transition-all appearance-none cursor-pointer disabled:opacity-50"
+                  className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-hidden transition-all appearance-none cursor-pointer disabled:opacity-50"
                 >
                   <option value="">
                     {talentLoading ? 'Loading talent...'
@@ -639,7 +639,7 @@ export const RequestQuote: React.FC = () => {
                 value={formData.notes}
                 onChange={handleChange}
                 placeholder="Tell us about the event atmosphere..."
-                className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-none resize-none transition-all placeholder:text-gray-600"
+                className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-hidden resize-none transition-all placeholder:text-gray-600"
               ></textarea>
             </div>
 

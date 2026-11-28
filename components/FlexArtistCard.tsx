@@ -106,13 +106,13 @@ export const FlexArtistCard: React.FC<FlexArtistCardProps> = ({ artist, featured
       {/* Signature element: dormant spotlight bar, sweeps in on hover */}
       <div className="absolute top-0 left-0 right-0 h-[3px] z-20 overflow-hidden">
         <div
-          className="h-full w-full bg-gradient-to-r from-brand-purple via-brand-pink to-brand-lime -translate-x-full group-hover:translate-x-0 transition-transform duration-500 ease-out"
+          className="h-full w-full bg-linear-to-r from-brand-purple via-brand-pink to-brand-lime -translate-x-full group-hover:translate-x-0 transition-transform duration-500 ease-out"
         />
       </div>
 
       <Link to={`/artists/${artist.id}`} className="block flex-1" id={`flex-artist-link-${artist.id}`}>
         <div className={`relative overflow-hidden ${featured ? 'h-72' : 'h-52'}`}>
-          <div className="absolute inset-0 bg-gradient-to-t from-brand-surface via-transparent to-transparent opacity-70 z-10" />
+          <div className="absolute inset-0 bg-linear-to-t from-brand-surface via-transparent to-transparent opacity-70 z-10" />
           <img
             src={cldImage(artist.imageUrl, 'card')}
             alt={artist.name}
@@ -123,15 +123,15 @@ export const FlexArtistCard: React.FC<FlexArtistCardProps> = ({ artist, featured
           {/* Billing tag — reads like a lineup ticket stub */}
           <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
             {featured && (
-              <span className="bg-brand-lime text-brand-dark text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded">
+              <span className="bg-brand-lime text-brand-dark text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-sm">
                 Headliner
               </span>
             )}
-            <span className="bg-black/50 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded border border-white/10">
+            <span className="bg-black/50 backdrop-blur-xs text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-sm border border-white/10">
               {artist.category}
             </span>
             {artist.priceRangeOrdinal != null && (
-              <span className="bg-brand-purple/80 backdrop-blur-sm text-white text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded border border-white/10">
+              <span className="bg-brand-purple/80 backdrop-blur-xs text-white text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-sm border border-white/10">
                 Range {artist.priceRangeOrdinal}
               </span>
             )}
@@ -170,7 +170,7 @@ export const FlexArtistCard: React.FC<FlexArtistCardProps> = ({ artist, featured
       </button>
 
       {error && (
-        <div className="absolute top-16 right-4 z-30 bg-red-500 text-white text-[10px] px-2 py-1 rounded shadow-lg flex items-center gap-1" id={`flex-heart-error-${artist.id}`}>
+        <div className="absolute top-16 right-4 z-30 bg-red-500 text-white text-[10px] px-2 py-1 rounded-sm shadow-lg flex items-center gap-1" id={`flex-heart-error-${artist.id}`}>
           <AlertCircle size={10} /> {error}
         </div>
       )}

@@ -34,7 +34,7 @@ export const About: React.FC = () => {
             maskImage: 'linear-gradient(to bottom, #000 0%, rgba(0,0,0,.6) 45%, transparent 88%)',
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-brand-dark" />
+        <div className="absolute inset-0 bg-linear-to-b from-transparent to-brand-dark" />
         <div className="relative z-10 text-center px-4">
           <h1 className="text-5xl font-bold mb-4">About En4tainment</h1>
           <p className="text-xl text-gray-300">Staging the future of music.</p>
@@ -57,7 +57,7 @@ export const About: React.FC = () => {
             </p>
           </div>
           <div className="relative">
-             <div className="absolute -inset-4 bg-gradient-to-r from-brand-pink to-brand-purple rounded-xl opacity-30 blur-lg"></div>
+             <div className="absolute -inset-4 bg-linear-to-r from-brand-pink to-brand-purple rounded-xl opacity-30 blur-lg"></div>
              <img 
               src="https://picsum.photos/id/452/600/400" 
               alt="Mission" 

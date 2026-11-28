@@ -174,7 +174,13 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, accentCol
     lime: 'border-l-brand-lime',
     indigo: 'border-l-brand-indigo',
   };
-
+  const accentText = {
+    purple: 'text-brand-purple',
+    pink: 'text-brand-pink',
+    lime: 'text-brand-lime',
+    indigo: 'text-brand-indigo',
+  };
+  
   return (
     <div className={`bg-brand-surface p-6 rounded-xl border border-white/5 border-l-4 ${accentStyles[accentColor]} hover:-translate-y-1 hover:shadow-xl transition-all duration-300`}>
       <div className="flex justify-between items-start text-left">
@@ -182,7 +188,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, accentCol
           <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1">{title}</p>
           <h3 className="text-2xl font-black text-white">{value}</h3>
         </div>
-        <div className={`p-2 rounded-lg bg-white/5 text-brand-${accentColor}`}>
+        <div className={`p-2 rounded-lg bg-white/5 ${accentText[accentColor]}`}>
           <Icon size={20} />
         </div>
       </div>
@@ -591,7 +597,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                           onClick={() => markNotificationRead(n.id)}
                           className="p-4 border-b border-white/5 hover:bg-white/5 cursor-pointer transition-colors flex gap-3"
                         >
-                          <div className="w-2 h-2 rounded-full bg-brand-pink mt-1.5 flex-shrink-0" />
+                          <div className="w-2 h-2 rounded-full bg-brand-pink mt-1.5 shrink-0" />
                           <div>
                             <p className="text-sm text-gray-300 mb-1">{n.message_preview ?? ''}</p>
                             <p className="text-[10px] text-gray-500 uppercase font-bold">{n.sent_at ? lkTime(n.sent_at) : ''}</p>
@@ -732,7 +738,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                 </div>
                 <Button 
                   onClick={() => setShowBookingForm(true)}
-                  className="bg-gradient-to-r from-brand-purple to-brand-pink text-white rounded-full font-bold px-6 py-2 flex items-center gap-2"
+                  className="bg-linear-to-r from-brand-purple to-brand-pink text-white rounded-full font-bold px-6 py-2 flex items-center gap-2"
                 >
                   <Zap size={18} /> Post New Request
                 </Button>
@@ -801,7 +807,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                                     </div>
                                   </div>
 
-                                  <div className="flex-grow md:px-8">
+                                  <div className="grow md:px-8">
                                     <div className="grid grid-cols-3 gap-4 mb-3">
                                       <div>
                                         <p className="text-[8px] uppercase font-black text-gray-500">Quote</p>
@@ -886,9 +892,9 @@ if (data) venueProfile = data as unknown as VenueProfile;
                         </div>
 
                         {/* Centre: Talent Info */}
-                        <div className="flex-grow p-6 flex flex-col md:flex-row justify-between gap-6">
+                        <div className="grow p-6 flex flex-col md:flex-row justify-between gap-6">
                           <div className="flex gap-6">
-                            <div className="relative flex-shrink-0">
+                            <div className="relative shrink-0">
                               <img 
                                 src={cldImage(booking.profiles_talent?.profile_photo_url, 'avatar') || '/avatar-placeholder.svg'} 
                                 alt={booking.profiles_talent?.stage_name}
@@ -1070,7 +1076,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
       {/* Messages Slide-Over */}
       {activeMessageBooking && (
         <div className="fixed inset-0 z-50 overflow-hidden" id="messages-panel">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setActiveMessageBooking(null)} />
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setActiveMessageBooking(null)} />
           <div className="absolute top-0 right-0 h-full w-full max-w-md bg-brand-surface border-l border-white/10 shadow-2xl flex flex-col text-left">
             <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
               <div className="flex items-center gap-4">
@@ -1089,7 +1095,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
               <button onClick={() => setActiveMessageBooking(null)} aria-label="Close messages" className="p-2 text-gray-400 hover:text-white"><X size={24} /></button>
             </div>
 
-            <div className="flex-grow overflow-y-auto p-6 space-y-6">
+            <div className="grow overflow-y-auto p-6 space-y-6">
               {messages.map((msg, idx) => {
                 const isMine = msg.sender_id !== activeMessageBooking.profiles_talent?.user_id; // Simple check for sender
                 return (
@@ -1098,7 +1104,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                       {!isMine && (
                         <img 
                           src={cldImage(activeMessageBooking.profiles_talent?.profile_photo_url, 'avatar') || '/avatar-placeholder.svg'} 
-                          className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                          className="w-8 h-8 rounded-full object-cover shrink-0"
                           alt=""
                         />
                       )}
@@ -1123,7 +1129,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
                   onChange={(e) => setMessageContent(e.target.value)}
                   placeholder="Type your message..."
                   aria-label="Message"
-                  className="w-full bg-brand-dark border border-white/10 rounded-full py-4 pl-6 pr-14 text-sm text-white focus:outline-none focus:border-brand-purple transition-colors"
+                  className="w-full bg-brand-dark border border-white/10 rounded-full py-4 pl-6 pr-14 text-sm text-white focus:outline-hidden focus:border-brand-purple transition-colors"
                 />
                 <button 
                   type="submit"
@@ -1149,7 +1155,7 @@ if (data) venueProfile = data as unknown as VenueProfile;
       {/* Booking Form Modal (Stubbed for "Post New Request") */}
       {showBookingForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" id="post-request-modal">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowBookingForm(false)} />
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-xs" onClick={() => setShowBookingForm(false)} />
           <div className="relative bg-brand-surface w-full max-w-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden text-center">
              <div className="p-6 border-b border-white/5 flex justify-between items-center text-left">
                 <h3 className="text-xl font-black text-white uppercase tracking-tighter">Post New Event Request</h3>

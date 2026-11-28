@@ -85,7 +85,7 @@ export const ArtistCard: React.FC<ArtistCardProps> = ({ artist }) => {
     <div className="group relative bg-brand-surface rounded-2xl overflow-hidden hover:-translate-y-2 transition-transform duration-300 shadow-xl border border-white/5 hover:border-brand-purple/50" id={`artist-card-${artist.id}`}>
       <Link to={`/artists/${artist.id}`} className="block h-full" id={`artist-link-${artist.id}`}>
         <div className="relative h-64 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-t from-brand-surface to-transparent opacity-60 z-10" />
+          <div className="absolute inset-0 bg-linear-to-t from-brand-surface to-transparent opacity-60 z-10" />
           <img 
             src={cldImage(artist.imageUrl, 'card')} 
             alt={artist.name} 
@@ -130,7 +130,7 @@ export const ArtistCard: React.FC<ArtistCardProps> = ({ artist }) => {
       </button>
 
       {error && (
-        <div className="absolute top-16 right-4 z-30 bg-red-500 text-white text-[10px] px-2 py-1 rounded shadow-lg animate-fade-in flex items-center gap-1" id={`heart-error-${artist.id}`}>
+        <div className="absolute top-16 right-4 z-30 bg-red-500 text-white text-[10px] px-2 py-1 rounded-sm shadow-lg animate-fade-in flex items-center gap-1" id={`heart-error-${artist.id}`}>
           <AlertCircle size={10} /> {error}
         </div>
       )}

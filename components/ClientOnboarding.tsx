@@ -90,7 +90,7 @@ export const ClientOnboarding: React.FC<ClientOnboardingProps> = ({
               required
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:ring-2 focus:ring-brand-purple"
+              className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white outline-hidden focus:ring-2 focus:ring-brand-purple"
               id="onboarding-name"
             />
           </div>
@@ -103,7 +103,7 @@ export const ClientOnboarding: React.FC<ClientOnboardingProps> = ({
               value={dob}
               onChange={(e) => setDob(e.target.value)}
               max={new Date().toISOString().split('T')[0]}
-              className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:ring-2 focus:ring-brand-purple"
+              className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white outline-hidden focus:ring-2 focus:ring-brand-purple"
               id="onboarding-dob"
             />
           </div>
@@ -116,7 +116,7 @@ export const ClientOnboarding: React.FC<ClientOnboardingProps> = ({
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="077 123 4567"
-              className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:ring-2 focus:ring-brand-purple"
+              className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white outline-hidden focus:ring-2 focus:ring-brand-purple"
               id="onboarding-phone"
             />
           </div>

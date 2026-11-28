@@ -128,7 +128,7 @@ export const Home: React.FC = () => {
             </div>
             <h1 className="text-6xl sm:text-8xl font-black text-white leading-tight mb-8 animate-fade-in-up delay-100">
               Discover <br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-pink via-brand-purple to-brand-lime">
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-brand-pink via-brand-purple to-brand-lime">
                 The New Stars
               </span>
             </h1>

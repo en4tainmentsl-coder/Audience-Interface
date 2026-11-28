@@ -231,7 +231,7 @@ export const Artists: React.FC = () => {
               placeholder="Search for artists, genres, or vibes..."
               value={searchTerm}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSearchChange(e.target.value)}
-              className="block w-full pl-12 pr-12 py-4 bg-brand-surface border border-white/10 rounded-2xl text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-purple/50 focus:border-brand-purple transition-all shadow-xl"
+              className="block w-full pl-12 pr-12 py-4 bg-brand-surface border border-white/10 rounded-2xl text-white placeholder:text-gray-600 focus:outline-hidden focus:ring-2 focus:ring-brand-purple/50 focus:border-brand-purple transition-all shadow-xl"
             />
             {searchTerm && (
               <button 
