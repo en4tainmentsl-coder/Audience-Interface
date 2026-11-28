@@ -32,7 +32,6 @@ interface ClientDashboardBooking {
   id: string;
   starts_at: string;
   booking_status: string;
-  location?: string;
   profiles_talent?: {
     stage_name: string;
     profile_photo_url?: string;
@@ -41,6 +40,18 @@ interface ClientDashboardBooking {
     name_of_venue: string;
     name_of_location: string;
   };
+    // Read through to the request rather than stored on the booking: `bookings`
+  // has no address column of any kind, only venue_id, which is NULL for a
+  // private address. Both hops are many-to-one FKs, so PostgREST returns
+  // objects, not arrays - bookings.quote_id -> quotes.id -> quote_requests.id.
+  // event_address is frozen by enforce_quote_request_writes once the request
+  // leaves 'open', so reading it live cannot drift from what was booked.
+  quotes?: {
+    quote_requests?: {
+      location: string | null;
+      event_address: string | null;
+    } | null;
+  } | null;
 }
 
 // What the client is shown of a quote. Deliberately NOT commission_amount or
@@ -140,6 +151,7 @@ export const ClientDashboard: React.FC = () => {
           booking_status,
           profiles_talent (stage_name, profile_photo_url),
           profiles_venues (name_of_venue, name_of_location)
+          quotes ( quote_requests ( location, event_address ) )
         `)
         .eq('client_user_id', userId)
         .order('starts_at', { ascending: false });
@@ -389,7 +401,7 @@ export const ClientDashboard: React.FC = () => {
                               <Calendar className="w-4 h-4" /> {lkDate(booking.starts_at)}
                             </span>
                             <span className="flex items-center gap-1">
-                              <MapPin className="w-4 h-4" /> {booking.profiles_venues?.name_of_venue || booking.location || 'TBA'}
+                              <MapPin className="w-4 h-4" /> {booking.profiles_venues?.name_of_venue || booking.quotes?.quote_requests?.location || booking.quotes?.quote_requests?.event_address || 'TBA'}
                             </span>
                           </div>
                         </div>
