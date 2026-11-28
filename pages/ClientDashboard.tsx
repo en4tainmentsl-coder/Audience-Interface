@@ -150,7 +150,7 @@ export const ClientDashboard: React.FC = () => {
           starts_at,
           booking_status,
           profiles_talent (stage_name, profile_photo_url),
-          profiles_venues (name_of_venue, name_of_location)
+          profiles_venues (name_of_venue, name_of_location),
           quotes ( quote_requests ( location, event_address ) )
         `)
         .eq('client_user_id', userId)
