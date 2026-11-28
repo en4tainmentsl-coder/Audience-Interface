@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+/* Tailwind 4. Source detection is automatic and needs no @source directives:
+   verified 2026-11-28 by building with and without them, which produced a
+   byte-identical stylesheet (same content hash). App code sits at the repo
+   root - this project has no src/ directory - and detection copes with that.
+
+   ⚠️ THE TRAP, which cost 40 minutes on 2026-11-28: the Tailwind plugin must
+   be registered in vite.config.js. If it is missing, Vite happily resolves
+   `@import "tailwindcss"` as a plain CSS import from node_modules and inlines
+   the package's STATIC parts - default theme variables plus preflight - so the
+   build succeeds, emits a ~22 kB stylesheet, and contains ZERO utilities. The
+   site renders almost unstyled with no error anywhere. A correct build is
+   ~64 kB. If utilities ever vanish, check `grep -n tailwind vite.config.js`
+   BEFORE suspecting source detection. */
+
+/* Brand tokens, ported verbatim from the inline tailwind.config block that
+   lived in index.html while the Play CDN was in use. In Tailwind 4 the
+   --color-* namespace generates the utilities, so --color-brand-dark yields
+   bg-brand-dark, text-brand-dark, border-l-brand-dark and the rest: exactly
+   the class names the markup already uses. Do not rename these. */
+@theme {
+  --color-brand-dark: #0f0518;    /* deep background */
+  --color-brand-purple: #8b5cf6;  /* primary logo purple */
+  --color-brand-indigo: #4338ca;  /* deep indigo */
+  --color-brand-pink: #ec4899;    /* logo pink */
+  --color-brand-lime: #a3e635;    /* logo lime */
+  --color-brand-surface: #1e1b2e; /* card background */
+
+  --font-sans: "Inter", sans-serif;
+}
+
+/* Everything below was the inline <style> block in index.html. */
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-brand-dark);
+  color: #ffffff;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-brand-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-brand-purple);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-brand-pink);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out forwards;
+}

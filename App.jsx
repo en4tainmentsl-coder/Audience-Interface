@@ -54,7 +54,7 @@ const App = () => {
           so every page looks the same and the rig is no longer covered. */}
       <div className="flex flex-col min-h-screen text-white font-sans antialiased selection:bg-brand-pink selection:text-white">
         <Navbar />
-        <main className="flex-grow">
+        <main className="grow">
           <Suspense fallback={<RouteFallback />}>
             <Routes>
               <Route path="/" element={<Home />} />

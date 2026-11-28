@@ -150,7 +150,7 @@ export const Navbar: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           
-          <Link to="/" className="flex items-center gap-2 group flex-shrink-0" id="nav-logo-link">
+          <Link to="/" className="flex items-center gap-2 group shrink-0" id="nav-logo-link">
             <img
               src={LOGO_URL}
               alt="En4tainment"
@@ -158,7 +158,7 @@ export const Navbar: React.FC = () => {
             />
           </Link>
 
-          <div className="hidden md:flex items-center space-x-6 flex-grow justify-end">
+          <div className="hidden md:flex items-center space-x-6 grow justify-end">
             
             <div className={`relative flex items-center transition-all duration-300 ${isSearchOpen ? 'w-64' : 'w-10'}`} id="desktop-search-container">
               <button 
@@ -174,7 +174,7 @@ export const Navbar: React.FC = () => {
                 value={navSearch}
                 onChange={handleSearchChange}
                 onFocus={() => setIsSearchOpen(true)}
-                className={`bg-white/5 border border-white/10 rounded-full py-1.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:ring-1 focus:ring-brand-purple transition-all duration-300 ${
+                className={`bg-white/5 border border-white/10 rounded-full py-1.5 pl-10 pr-4 text-sm text-white focus:outline-hidden focus:ring-1 focus:ring-brand-purple transition-all duration-300 ${
                   isSearchOpen ? 'opacity-100' : 'opacity-0 cursor-default pointer-events-none'
                 }`}
               />
@@ -263,7 +263,7 @@ export const Navbar: React.FC = () => {
             </button>
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="text-gray-300 hover:text-white focus:outline-none"
+              className="text-gray-300 hover:text-white focus:outline-hidden"
               id="mobile-nav-toggle"
             >
               {isOpen ? <X size={28} /> : <Menu size={28} />}
