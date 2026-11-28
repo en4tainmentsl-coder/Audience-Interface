@@ -59,6 +59,23 @@ const addOneDay = (isoDate: string): string => {
   return dt.toISOString().slice(0, 10);
 };
 
+// Minimum lead time, mirroring the `quote_requests_set_responds_by` trigger,
+// which rejects any request whose event starts inside 120 hours with a 23514.
+// The database stays the authority; this exists so a client learns the rule
+// before filling in the whole form instead of from a raw error afterwards.
+const LEAD_TIME_HOURS = 120;
+
+// Earliest event date a client may pick, as YYYY-MM-DD in Sri Lanka local terms.
+// Shifts into LK time before taking the date part so the boundary is the Sri
+// Lankan calendar day and not the viewer's - same reasoning as LK_UTC_OFFSET.
+// Coarse by design: a date exactly five days out can still fail the precise
+// timestamp check in handleSubmit when the start time is early in the day.
+const earliestEventDate = (): string => {
+  const cutoffUtcMs = Date.now() + LEAD_TIME_HOURS * 3_600_000;
+  const lkShifted = new Date(cutoffUtcMs + 5.5 * 3_600_000);
+  return lkShifted.toISOString().slice(0, 10);
+};
+
 export const RequestQuote: React.FC = () => {
   const [searchParams] = useSearchParams();
   const preSelectedTalentId: string | null = searchParams.get('artistId');
@@ -281,6 +298,18 @@ export const RequestQuote: React.FC = () => {
 
       const startsAt = `${formData.date}T${formData.startTime}:00${LK_UTC_OFFSET}`;
       const endsAt = `${endDate}T${formData.endTime}:00${LK_UTC_OFFSET}`;
+
+      // Mirrors `quote_requests_set_responds_by`. Checked on the full timestamp
+      // rather than the date alone: a date five days out with an early start
+      // time is still inside the 120-hour window, which the `min` attribute on
+      // the date input cannot catch.
+      if (new Date(startsAt).getTime() - Date.now() < LEAD_TIME_HOURS * 3_600_000) {
+        setLoading(false);
+        setErrorMessage(
+          `Requests must be made at least 5 days before the event — ${earliestEventDate()} at the earliest. Please choose a later date or start time.`
+        );
+        return;
+      }
 
       // Satisfies quote_requests_has_location. The chosen town's centroid is
       // written as the floor; a selected venue's own coordinates override it
@@ -527,6 +556,7 @@ export const RequestQuote: React.FC = () => {
                   type="date"
                   name="date"
                   required
+                  min={earliestEventDate()}
                   value={formData.date}
                   onChange={handleChange}
                   className="w-full bg-brand-dark/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-brand-purple focus:border-transparent outline-hidden transition-all"
